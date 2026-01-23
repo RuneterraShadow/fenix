@@ -314,7 +314,7 @@ const ADMIN_PASS = "4465-22-1Rgm";
 const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1464068318955569447/X7ijBubyKS39gXUO-WgkIe_NAw2LzhZ0ifqbUvrjH7GisdE7X8FxazSWo0BQLIB9GZ1w";
 
 /* ===== PRICE API (Apps Script) ===== */
-const PRICE_API_URL = "https://script.google.com/macros/s/AKfycbxo8dkJqrux2u3LjKgXzUMtEBWcpuP64Q8VLyaPVL3VifbgaHGau-Jurfgevobq10VrMA/exec";
+const PRICE_API_URL = "https://script.google.com/macros/s/AKfycbwJWL1UxirGsl7NLMx-boOvwV30Sb6q11DryvZljvFfo3BVYnMllIB7I-oOsP5W8klM/exec";
 
 /* ===== STORAGE (PEDIDOS locais) ===== */
 const STORAGE = "fenix_pedidos";
@@ -362,36 +362,21 @@ function parsePrecoParaCentavos(txt){
   return Math.round(num * 100);
 }
 
-/*
-  ✅ FIX MOBILE:
-  - Envia como application/x-www-form-urlencoded (request "simples")
-  - Evita "Failed to fetch" / CORS no celular
-  - Usa o usuário/senha digitados (não hardcoded no request)
-*/
+/* ✅ SALVAR GLOBAL via GET (evita CORS / Failed to fetch) */
 async function setPrecoCentavosRemoto(cents){
-  const u = document.getElementById("adminUser").value.trim();
-  const p = document.getElementById("adminPass").value;
+  const qs =
+    `action=setprice` +
+    `&adminUser=${encodeURIComponent(ADMIN_USER)}` +
+    `&adminPass=${encodeURIComponent(ADMIN_PASS)}` +
+    `&priceCents=${encodeURIComponent(String(Math.floor(cents)))}` +
+    `&t=${Date.now()}`;
 
-  const form = new URLSearchParams({
-    action: "setprice",
-    adminUser: u,
-    adminPass: p,
-    priceCents: String(Math.floor(cents)),
-    t: String(Date.now())
-  });
+  const url = `${PRICE_API_URL}?${qs}`;
 
-  const resp = await fetch(PRICE_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-    body: form.toString(),
-    cache: "no-store",
-    redirect: "follow"
-  });
+  const r = await fetch(url, { method:"GET", cache:"no-store" });
+  const j = await r.json();
 
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  const j = await resp.json();
   if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "Falha ao salvar");
-
   priceCacheCents = Math.floor(cents);
 }
 
@@ -415,7 +400,7 @@ async function salvarPreco(){
     out.textContent = `✅ Valor global atualizado para ${formatBRLFromCents(cents)}.`;
     out.style.color = "#00ff88";
 
-    // Confirma buscando do servidor
+    // recarrega do servidor pra confirmar
     setTimeout(carregarPrecoRemoto, 600);
   } catch(e){
     out.textContent = `❌ Erro ao salvar: ${e.message}`;
@@ -617,3 +602,4 @@ carregarPrecoRemoto();
 
 </body>
 </html>
+
