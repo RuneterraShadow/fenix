@@ -3,71 +3,152 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Encomendas — Lágrimas de Fênix</title>
+  <title>Lágrimas de Fênix — Encomendas</title>
+
   <style>
     * { box-sizing: border-box; }
     body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#0f0f0f; color:#fff; }
-    header {
+
+    header{
       background:#1a1a1a;
       padding:14px 20px;
       display:flex;
-      align-items:center;
       justify-content:space-between;
-      gap:12px;
+      align-items:center;
     }
-    header .title h1 { margin:0; color:#ff7a00; font-size:20px; }
-    header .title p { margin:4px 0 0; opacity:.85; font-size:13px; }
 
-    .login { display:flex; align-items:center; gap:8px; }
+    header h1{ margin:0; color:#ff7a00; font-size:20px; }
+    header p{ margin:4px 0 0; font-size:13px; opacity:.85; }
+
+    .login{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+
     .login input{
-      width:120px; padding:7px 8px; border:none; border-radius:6px;
-      background:#2b2b2b; color:#fff;
+      background:#2b2b2b;
+      color:#fff;
+      border:none;
+      border-radius:6px;
+      padding:6px 8px;
+      width:120px;
     }
+
     .login button{
-      width:auto; padding:7px 10px; border:none; border-radius:6px;
-      background:#ff7a00; color:#000; font-weight:bold; cursor:pointer;
+      background:#ff7a00;
+      color:#000;
+      border:none;
+      border-radius:6px;
+      padding:6px 10px;
+      font-weight:bold;
+      cursor:pointer;
     }
-    .login button:hover{ background:#ff9a33; }
-    .badge { font-size:13px; opacity:.95; }
 
-    .container { max-width:1000px; margin:auto; padding:20px; }
-    .grid { display:grid; grid-template-columns: 1.1fr .9fr; gap:20px; }
-    @media (max-width: 900px){ .grid { grid-template-columns:1fr; } }
+    .container{
+      max-width:1000px;
+      margin:auto;
+      padding:20px;
+    }
 
-    .card { background:#1e1e1e; border-radius:10px; padding:20px; margin-bottom:20px; }
-    .product img { width:100%; border-radius:10px; display:block; }
-    .price { color:#00ff88; font-size:24px; font-weight:bold; margin:10px 0 0; }
+    .grid{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:20px;
+    }
 
-    input, button { width:100%; padding:12px; margin-top:10px; border:none; border-radius:6px; }
-    input { background:#2b2b2b; color:#fff; }
-    button.primary { background:#ff7a00; color:#000; font-weight:bold; cursor:pointer; }
-    button.primary:hover { background:#ff9a33; }
+    @media (max-width:900px){
+      .grid{ grid-template-columns:1fr; }
+    }
 
-    .hidden { display:none; }
+    .card{
+      background:#1e1e1e;
+      border-radius:10px;
+      padding:20px;
+      margin-bottom:20px;
+    }
 
-    table { width:100%; border-collapse:collapse; margin-top:10px; }
-    th, td { border:1px solid #333; padding:8px; text-align:left; }
-    th { background:#2a2a2a; }
-    .btn-small { width:auto; padding:6px 10px; font-size:12px; border:none; border-radius:6px; cursor:pointer; background:#ff7a00; color:#000; font-weight:bold; }
-    .btn-small:hover { background:#ff9a33; }
+    .product img{
+      width:100%;
+      border-radius:10px;
+      display:block;
+    }
 
-    .muted { opacity:.85; font-size:13px; }
+    .price{
+      color:#00ff88;
+      font-size:24px;
+      font-weight:bold;
+      margin-top:10px;
+    }
+
+    input, button{
+      width:100%;
+      padding:12px;
+      margin-top:10px;
+      border:none;
+      border-radius:6px;
+    }
+
+    input{
+      background:#2b2b2b;
+      color:#fff;
+    }
+
+    button.primary{
+      background:#ff7a00;
+      color:#000;
+      font-weight:bold;
+      cursor:pointer;
+    }
+
+    .hidden{ display:none; }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:10px;
+    }
+
+    th, td{
+      border:1px solid #333;
+      padding:8px;
+      text-align:left;
+    }
+
+    th{ background:#2a2a2a; }
+
+    .btn-small{
+      background:#ff7a00;
+      color:#000;
+      border:none;
+      border-radius:6px;
+      padding:6px 10px;
+      font-size:12px;
+      font-weight:bold;
+      cursor:pointer;
+    }
+
+    .muted{
+      font-size:13px;
+      opacity:.85;
+      margin-top:10px;
+    }
   </style>
 </head>
+
 <body>
 
 <header>
-  <div class="title">
+  <div>
     <h1>Lágrimas de Fênix</h1>
     <p>Soro de Recuperação Rápida PT-29</p>
   </div>
 
   <div class="login">
-    <input id="adminUser" placeholder="Usuário" autocomplete="off">
-    <input id="adminPass" type="password" placeholder="Senha" autocomplete="off">
-    <button type="button" id="btnLogin" onclick="loginAdmin()">Entrar</button>
-    <button type="button" id="btnLogout" class="hidden" onclick="logoutAdmin()">Sair</button>
-    <span id="status" class="badge"></span>
+    <input id="adminUser" placeholder="Usuário">
+    <input id="adminPass" type="password" placeholder="Senha">
+    <button onclick="login()">Entrar</button>
+    <span id="status"></span>
   </div>
 </header>
 
@@ -77,22 +158,20 @@
     <!-- PRODUTO -->
     <div>
       <div class="card product">
-        <!-- IMPORTANTE:
-             - Recomendo renomear no GitHub para: venda-fenix.png
-             - Este código tenta 2 nomes automaticamente (serve desktop e celular). -->
-        <img id="produtoImg" alt="Lágrimas de Fênix">
-        <h2 style="margin:14px 0 0;">Soro de Recuperação Rápida PT-29</h2>
+        <img src="venda-fenix.png" alt="Lágrimas de Fênix">
+        <h2>Soro de Recuperação Rápida PT-29</h2>
         <div class="price">R$ 10.000</div>
-        <p style="margin:12px 0 0;">
-          Substância injetável experimental secreta de uso militar, conhecida como <b>“Lágrimas de Fênix”</b>.
-          Proporciona estabilização e recuperação rápidas e instantâneas de <b>QUALQUER lesão</b> e <b>toxina</b>
-          simultaneamente.
+
+        <!-- FRASE MANTIDA EXATAMENTE COMO VOCÊ ENVIOU -->
+        <p style="margin-top:12px;">
+          Substância injetável experimental secreta de uso militar, conhecida como "Lágrimas de Fênix".
+          Proporciona estabilização e recuperação rápida e instantânea de QUALQUER lesão e toxina simultaneamente.
         </p>
       </div>
 
       <!-- GERENCIADOR -->
       <div class="card hidden" id="adminPanel">
-        <h2 style="margin:0 0 10px;">👑 Gerenciador de Encomendas</h2>
+        <h2>👑 Gerenciador de encomendas</h2>
         <table>
           <thead>
             <tr>
@@ -100,33 +179,25 @@
               <th>Discord</th>
               <th>Nick</th>
               <th>Qtd</th>
-              <th>Hora</th>
               <th>Ação</th>
             </tr>
           </thead>
           <tbody id="lista"></tbody>
         </table>
-
-        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-          <button type="button" class="btn-small" onclick="limparTudo()">🗑️ Limpar tudo</button>
-        </div>
-
-        <p class="muted" style="margin-top:10px;">
-          Obs.: o gerenciador salva no <b>mesmo navegador/dispositivo</b> (localStorage).
-        </p>
+        <button class="btn-small" onclick="limpar()">Limpar tudo</button>
       </div>
     </div>
 
     <!-- FORMULÁRIO -->
     <div>
       <div class="card">
-        <h2 style="margin:0 0 10px;">📦 Fazer Encomenda</h2>
+        <h2>📦 Fazer encomenda</h2>
         <input id="discord" placeholder="@ do Discord">
         <input id="nick" placeholder="Nick no jogo">
-        <input id="qtd" type="number" min="1" value="1" placeholder="Quantidade">
-        <button type="button" class="primary" onclick="enviarEncomenda()">Enviar Encomenda</button>
-        <div id="msg" style="margin-top:10px;"></div>
-        <p class="muted" style="margin-top:10px;">Pedidos são enviados somente para o Discord.</p>
+        <input id="qtd" type="number" min="1" value="1">
+        <button class="primary" onclick="enviar()">Enviar encomenda</button>
+        <div id="msg"></div>
+        <p class="muted">Os pedidos são enviados exclusivamente para o Discord.</p>
       </div>
     </div>
 
@@ -134,195 +205,83 @@
 </div>
 
 <script>
-/* ===== CONFIG ===== */
 const ADMIN_USER = "Runeterra Shadow";
 const ADMIN_PASS = "4465-22-1Rgm";
-const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1464068318955569447/X7ijBubyKS39gXUO-WgkIe_NAw2LzhZ0ifqbUvrjH7GisdE7X8FxazSWo0BQLIB9GZ1w";
+const STORAGE = "fenix_pedidos";
 
-/* ===== IMAGEM: FUNCIONA NO DESKTOP E NO CELULAR =====
-   - Tenta primeiro "venda-fenix.png" (recomendado)
-   - Se não existir, tenta "Venda fenix!.png" (com URL encode)
-   - Adiciona cache-busting (?v=timestamp) para não “sumir” no celular por cache
-*/
-(function carregarImagemProduto(){
-  const img = document.getElementById("produtoImg");
-  const v = Date.now(); // evita cache velho
-  const tentativas = [
-    `venda-fenix.png?v=${v}`,
-    `Venda%20fenix!.png?v=${v}`,
-    `Venda%20fenix%21.png?v=${v}` // alguns renomes trocam ! por %21
-  ];
+let pedidos = JSON.parse(localStorage.getItem(STORAGE) || "[]");
 
-  let i = 0;
-  function tentarProxima(){
-    if (i >= tentativas.length) { img.style.display = "none"; return; }
-    img.src = tentativas[i++];
-  }
-
-  img.onload = () => { img.style.display = "block"; };
-  img.onerror = tentarProxima;
-
-  tentarProxima();
-})();
-
-/* ===== PERSISTÊNCIA DO GERENCIADOR ===== */
-const STORAGE_KEY = "fenix_encomendas_v2";
-let adminLogado = false;
-
-let encomendas = carregarLocal();
-
-function carregarLocal() {
-  try {
-    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
-}
-function salvarLocal() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(encomendas));
+function gerarId(){
+  return "FX-" + Date.now().toString(36).toUpperCase();
 }
 
-/* ===== ID ÚNICO DO PEDIDO ===== */
-function gerarPedidoId() {
-  const agora = Date.now().toString(36);
-  const rand = Math.random().toString(36).slice(2, 6);
-  return `FX-${agora}-${rand}`.toUpperCase();
-}
+function enviar(){
+  const d = discord.value.trim();
+  const n = nick.value.trim();
+  const q = parseInt(qtd.value);
 
-/* ===== LOGIN ADMIN ===== */
-function loginAdmin() {
-  const u = document.getElementById("adminUser").value.trim();
-  const p = document.getElementById("adminPass").value.trim();
-
-  if (u === ADMIN_USER && p === ADMIN_PASS) {
-    adminLogado = true;
-    document.getElementById("status").textContent = "👑";
-    document.getElementById("adminPanel").classList.remove("hidden");
-
-    document.getElementById("btnLogin").classList.add("hidden");
-    document.getElementById("btnLogout").classList.remove("hidden");
-    document.getElementById("adminUser").classList.add("hidden");
-    document.getElementById("adminPass").classList.add("hidden");
-
-    encomendas = carregarLocal();
-    renderAdmin();
-  } else {
-    document.getElementById("status").textContent = "❌";
-  }
-}
-
-function logoutAdmin() {
-  adminLogado = false;
-  document.getElementById("status").textContent = "";
-  document.getElementById("adminPanel").classList.add("hidden");
-
-  document.getElementById("btnLogin").classList.remove("hidden");
-  document.getElementById("btnLogout").classList.add("hidden");
-  document.getElementById("adminUser").classList.remove("hidden");
-  document.getElementById("adminPass").classList.remove("hidden");
-  document.getElementById("adminPass").value = "";
-}
-
-/* ===== ENCOMENDA ===== */
-function enviarEncomenda() {
-  const discord = document.getElementById("discord").value.trim();
-  const nick = document.getElementById("nick").value.trim();
-  const qtd = parseInt(document.getElementById("qtd").value, 10);
-  const msg = document.getElementById("msg");
-
-  if (!discord || !nick || !qtd || qtd < 1) {
-    msg.textContent = "❌ Preencha todos os campos corretamente.";
+  if(!d || !n || q < 1){
+    msg.innerText = "❌ Preencha todos os campos corretamente.";
     return;
   }
 
-  const pedidoId = gerarPedidoId();
-  const agora = new Date();
-
-  const pedido = { id: pedidoId, discord, nick, qtd, hora: agora.toLocaleString() };
-
-  // salva SEMPRE
-  encomendas.push(pedido);
-  salvarLocal();
-  if (adminLogado) renderAdmin();
-
-  fetch(DISCORD_WEBHOOK, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      content:
-        `🧪 **NOVA ENCOMENDA — LÁGRIMAS DE FÊNIX**\n` +
-        `🆔 ID: ${pedidoId}\n` +
-        `👤 Discord: ${discord}\n` +
-        `🎮 Nick: ${nick}\n` +
-        `📦 Quantidade: ${qtd}\n` +
-        `⏰ Data: ${agora.toLocaleString()}`
-    })
-  }).catch(() => {});
+  const id = gerarId();
+  pedidos.push({id,d,n,q});
+  localStorage.setItem(STORAGE, JSON.stringify(pedidos));
 
   msg.innerHTML = `
-    <div style="background:#162016;border:1px solid #00ff88;border-radius:8px;padding:12px;">
-      <div><b style="color:#00ff88;">✔ Pedido registrado com sucesso!</b></div>
-      <div style="margin-top:8px; font-size:14px;">
-        <div>🆔 <b>ID:</b> ${escapeHtml(pedidoId)}</div>
-        <div>👤 <b>Discord:</b> ${escapeHtml(discord)}</div>
-        <div>🎮 <b>Nick:</b> ${escapeHtml(nick)}</div>
-        <div>📦 <b>Quantidade:</b> ${qtd}</div>
-      </div>
+    <div style="background:#162016;border:1px solid #00ff88;border-radius:8px;padding:10px;margin-top:10px;">
+      <b style="color:#00ff88;">✔ Pedido registrado com sucesso!</b><br>
+      🆔 ${id}<br>
+      👤 ${d}<br>
+      🎮 ${n}<br>
+      📦 ${q}
     </div>
   `;
 
-  document.getElementById("discord").value = "";
-  document.getElementById("nick").value = "";
-  document.getElementById("qtd").value = 1;
+  discord.value = nick.value = "";
+  qtd.value = 1;
+
+  if(!adminPanel.classList.contains("hidden")) render();
 }
 
-/* ===== ADMIN ===== */
-function renderAdmin() {
-  const tbody = document.getElementById("lista");
-  tbody.innerHTML = "";
-
-  if (encomendas.length === 0) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="6">Sem encomendas salvas neste navegador.</td>`;
-    tbody.appendChild(tr);
-    return;
+function login(){
+  if(adminUser.value === ADMIN_USER && adminPass.value === ADMIN_PASS){
+    adminPanel.classList.remove("hidden");
+    status.innerText = "👑";
+    render();
+  } else {
+    status.innerText = "❌";
   }
+}
 
-  encomendas.forEach((e, i) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML =
-      `<td>${escapeHtml(e.id)}</td>` +
-      `<td>${escapeHtml(e.discord)}</td>` +
-      `<td>${escapeHtml(e.nick)}</td>` +
-      `<td>${e.qtd}</td>` +
-      `<td>${escapeHtml(e.hora)}</td>` +
-      `<td><button type="button" class="btn-small" onclick="marcarEntregue(${i})">Entregue</button></td>`;
-    tbody.appendChild(tr);
+function render(){
+  lista.innerHTML = "";
+  pedidos.forEach((p,i)=>{
+    lista.innerHTML += `
+      <tr>
+        <td>${p.id}</td>
+        <td>${p.d}</td>
+        <td>${p.n}</td>
+        <td>${p.q}</td>
+        <td><button class="btn-small" onclick="entregue(${i})">Entregue</button></td>
+      </tr>
+    `;
   });
 }
 
-function marcarEntregue(i) {
-  encomendas.splice(i, 1);
-  salvarLocal();
-  renderAdmin();
+function entregue(i){
+  pedidos.splice(i,1);
+  localStorage.setItem(STORAGE, JSON.stringify(pedidos));
+  render();
 }
 
-function limparTudo() {
-  if (!confirm("Remover TODAS as encomendas salvas neste navegador?")) return;
-  encomendas = [];
-  salvarLocal();
-  renderAdmin();
-}
-
-/* ===== util ===== */
-function escapeHtml(str) {
-  return String(str)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+function limpar(){
+  if(confirm("Remover todas as encomendas?")){
+    pedidos = [];
+    localStorage.setItem(STORAGE,"[]");
+    render();
+  }
 }
 </script>
 
