@@ -33,7 +33,7 @@
 <header>
   <h1>Lágrimas de Fênix</h1>
   <div class="top-right">
-    <button id="btnLogin" class="btn-discord" onclick="loginDiscord()">Entrar com Discord</button>
+    <button id="btnLogin" class="btn-discord" type="button" onclick="loginDiscord()">Entrar com Discord</button>
     <span id="loginStatus" class="badge"></span>
   </div>
 </header>
@@ -52,7 +52,7 @@
     <input id="discord" placeholder="@ do Discord">
     <input id="nick" placeholder="Nick no jogo">
     <input id="qtd" type="number" min="1" value="1">
-    <button class="primary" onclick="enviarEncomenda()">Enviar Encomenda</button>
+    <button class="primary" type="button" onclick="enviarEncomenda()">Enviar Encomenda</button>
     <p id="msg"></p>
   </div>
 
@@ -75,10 +75,18 @@
 
 <script>
 // ================= CONFIGURAÇÃO =================
-const DISCORD_CLIENT_ID = "COLE_SEU_CLIENT_ID_AQUI"; // obrigatório
-const ADMIN_DISCORD_ID = "1464077708723097702"; // SEU ID (admin único)
+// 1) Cole o Client ID do seu app do Discord (só números).
+const DISCORD_CLIENT_ID = "1464077708723097702";
+
+// 2) Seu Discord ID (admin único) — já configurado:
+const ADMIN_DISCORD_ID = "1464077708723097702";
+
+// 3) Webhook para receber as encomendas:
 const WEBHOOK = "https://discord.com/api/webhooks/1464068318955569447/X7ijBubyKS39gXUO-WgkIe_NAw2LzhZ0ifqbUvrjH7GisdE7X8FxazSWo0BQLIB9GZ1w";
-const REDIRECT_URI = window.location.origin + window.location.pathname;
+
+// 4) Redirect fixo (evita “formato inválido” por mismatch de URL):
+//    No Discord Developer Portal (OAuth2 → General), adicione exatamente este Redirect URI.
+const REDIRECT_URI = "https://runetterashadow.github.io/fenix/";
 
 // ================= ESTADO =================
 let adminLogado = false;
@@ -86,45 +94,61 @@ let encomendas = [];
 
 // ================= LOGIN DISCORD =================
 function loginDiscord() {
-  const authURL = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify`;
+  // Evita o erro “formato inválido” quando o Client ID ainda não foi colocado
+  if (!DISCORD_CLIENT_ID || DISCORD_CLIENT_ID === "COLE_SEU_CLIENT_ID_AQUI" || !/^\d+$/.test(DISCORD_CLIENT_ID)) {
+    alert("Falta configurar o DISCORD_CLIENT_ID no index.html (Discord Developer Portal → Application → Client ID).");
+    return;
+  }
+
+  const authURL =
+    `https://discord.com/oauth2/authorize` +
+    `?client_id=${DISCORD_CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+    `&response_type=token` +
+    `&scope=identify` +
+    `&prompt=consent`;
+
   window.location.href = authURL;
 }
 
 // Processa retorno OAuth
-if (window.location.hash.includes('access_token')) {
-  const params = new URLSearchParams(window.location.hash.substring(1));
-  const token = params.get('access_token');
+(function processOAuthReturn() {
+  if (!window.location.hash.includes("access_token")) return;
 
-  fetch('https://discord.com/api/users/@me', {
+  const params = new URLSearchParams(window.location.hash.substring(1));
+  const token = params.get("access_token");
+
+  fetch("https://discord.com/api/users/@me", {
     headers: { Authorization: `Bearer ${token}` }
   })
-  .then(r => r.json())
-  .then(user => {
-    if (user && user.id === ADMIN_DISCORD_ID) {
-      adminLogado = true;
-      document.getElementById('loginStatus').innerText = '👑 Admin';
-      document.getElementById('adminPanel').classList.remove('hidden');
-      document.getElementById('btnLogin').style.display = 'none';
-    } else {
-      document.getElementById('loginStatus').innerText = '❌ Sem permissão';
-    }
-    // limpa o hash da URL
-    history.replaceState(null, '', window.location.pathname);
-  })
-  .catch(() => {
-    document.getElementById('loginStatus').innerText = 'Erro no login';
-  });
-}
+    .then(r => r.json())
+    .then(user => {
+      if (user && user.id === ADMIN_DISCORD_ID) {
+        adminLogado = true;
+        document.getElementById("loginStatus").innerText = "👑 Admin";
+        document.getElementById("adminPanel").classList.remove("hidden");
+        document.getElementById("btnLogin").style.display = "none";
+      } else {
+        document.getElementById("loginStatus").innerText = "❌ Sem permissão";
+      }
+
+      // limpa o hash da URL (remove token da barra)
+      history.replaceState(null, "", window.location.pathname);
+    })
+    .catch(() => {
+      document.getElementById("loginStatus").innerText = "Erro no login";
+    });
+})();
 
 // ================= ENCOMENDA =================
 function enviarEncomenda() {
-  const discord = document.getElementById('discord').value.trim();
-  const nick = document.getElementById('nick').value.trim();
-  const qtd = parseInt(document.getElementById('qtd').value, 10);
-  const msg = document.getElementById('msg');
+  const discord = document.getElementById("discord").value.trim();
+  const nick = document.getElementById("nick").value.trim();
+  const qtd = parseInt(document.getElementById("qtd").value, 10);
+  const msg = document.getElementById("msg");
 
   if (!discord || !nick || !qtd || qtd < 1) {
-    msg.innerText = 'Preencha todos os campos corretamente.';
+    msg.innerText = "Preencha todos os campos corretamente.";
     return;
   }
 
@@ -135,26 +159,30 @@ function enviarEncomenda() {
   }
 
   fetch(WEBHOOK, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      content: `🧪 **NOVA ENCOMENDA — LÁGRIMAS DE FÊNIX**\n👤 Discord: ${discord}\n🎮 Nick: ${nick}\n📦 Quantidade: ${qtd}`
+      content:
+        `🧪 **NOVA ENCOMENDA — LÁGRIMAS DE FÊNIX**\n` +
+        `👤 Discord: ${discord}\n` +
+        `🎮 Nick: ${nick}\n` +
+        `📦 Quantidade: ${qtd}`
     })
   }).catch(() => {});
 
-  msg.innerText = '✅ Encomenda enviada!';
-  document.getElementById('discord').value = '';
-  document.getElementById('nick').value = '';
-  document.getElementById('qtd').value = 1;
+  msg.innerText = "✅ Encomenda enviada!";
+  document.getElementById("discord").value = "";
+  document.getElementById("nick").value = "";
+  document.getElementById("qtd").value = 1;
 }
 
 // ================= ADMIN =================
 function atualizarAdmin() {
-  const lista = document.getElementById('adminLista');
-  lista.innerHTML = '';
+  const lista = document.getElementById("adminLista");
+  lista.innerHTML = "";
   encomendas.forEach((e, i) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${e.discord}</td><td>${e.nick}</td><td>${e.qtd}</td><td><button class="btn-small" onclick="marcarEntregue(${i})">Entregue</button></td>`;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${e.discord}</td><td>${e.nick}</td><td>${e.qtd}</td><td><button class="btn-small" type="button" onclick="marcarEntregue(${i})">Entregue</button></td>`;
     lista.appendChild(tr);
   });
 }
