@@ -15,6 +15,7 @@
       display:flex;
       justify-content:space-between;
       align-items:center;
+      gap:12px;
     }
 
     header h1{ margin:0; color:#ff7a00; font-size:20px; }
@@ -126,6 +127,7 @@
       font-size:12px;
       font-weight:bold;
       cursor:pointer;
+      width:auto;
     }
 
     .muted{
@@ -147,7 +149,7 @@
   <div class="login">
     <input id="adminUser" placeholder="Usuário">
     <input id="adminPass" type="password" placeholder="Senha">
-    <button onclick="login()">Entrar</button>
+    <button type="button" onclick="login()">Entrar</button>
     <span id="status"></span>
   </div>
 </header>
@@ -158,11 +160,13 @@
     <!-- PRODUTO -->
     <div>
       <div class="card product">
-        <img src="venda-fenix.png" alt="Lágrimas de Fênix">
+        <!-- Imagem com fallback automático (desktop e celular) -->
+        <img id="produtoImg" alt="Lágrimas de Fênix">
+
         <h2>Soro de Recuperação Rápida PT-29</h2>
         <div class="price">R$ 10.000</div>
 
-        <!-- FRASE MANTIDA EXATAMENTE COMO VOCÊ ENVIOU -->
+        <!-- FRASE EXATA -->
         <p style="margin-top:12px;">
           Substância injetável experimental secreta de uso militar, conhecida como "Lágrimas de Fênix".
           Proporciona estabilização e recuperação rápida e instantânea de QUALQUER lesão e toxina simultaneamente.
@@ -184,7 +188,10 @@
           </thead>
           <tbody id="lista"></tbody>
         </table>
-        <button class="btn-small" onclick="limpar()">Limpar tudo</button>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+          <button class="btn-small" type="button" onclick="limpar()">Limpar tudo</button>
+        </div>
       </div>
     </div>
 
@@ -195,7 +202,7 @@
         <input id="discord" placeholder="@ do Discord">
         <input id="nick" placeholder="Nick no jogo">
         <input id="qtd" type="number" min="1" value="1">
-        <button class="primary" onclick="enviar()">Enviar encomenda</button>
+        <button class="primary" type="button" onclick="enviar()">Enviar encomenda</button>
         <div id="msg"></div>
         <p class="muted">Os pedidos são enviados exclusivamente para o Discord.</p>
       </div>
@@ -205,6 +212,31 @@
 </div>
 
 <script>
+/* ===== IMAGEM (fallback) =====
+   - Tenta "venda-fenix.png" (recomendado)
+   - Se não existir, tenta o nome antigo "Venda fenix!.png" (com encode)
+   - Evita cache velho com ?v=
+*/
+(function carregarImagem(){
+  const img = document.getElementById("produtoImg");
+  const v = Date.now();
+  const tentativas = [
+    `venda-fenix.png?v=${v}`,
+    `Venda%20fenix!.png?v=${v}`,
+    `Venda%20fenix%21.png?v=${v}`
+  ];
+  let i = 0;
+
+  img.onerror = () => {
+    i++;
+    if (i >= tentativas.length) { img.style.display = "none"; return; }
+    img.src = tentativas[i];
+  };
+
+  img.src = tentativas[0];
+})();
+
+/* ===== ADMIN ===== */
 const ADMIN_USER = "Runeterra Shadow";
 const ADMIN_PASS = "4465-22-1Rgm";
 const STORAGE = "fenix_pedidos";
@@ -212,34 +244,35 @@ const STORAGE = "fenix_pedidos";
 let pedidos = JSON.parse(localStorage.getItem(STORAGE) || "[]");
 
 function gerarId(){
-  return "FX-" + Date.now().toString(36).toUpperCase();
+  return `FX-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`.toUpperCase();
 }
 
 function enviar(){
   const d = discord.value.trim();
   const n = nick.value.trim();
-  const q = parseInt(qtd.value);
+  const q = parseInt(qtd.value, 10);
 
-  if(!d || !n || q < 1){
+  if(!d || !n || !q || q < 1){
     msg.innerText = "❌ Preencha todos os campos corretamente.";
     return;
   }
 
   const id = gerarId();
-  pedidos.push({id,d,n,q});
+  pedidos.push({id,d,n,q, hora:new Date().toLocaleString()});
   localStorage.setItem(STORAGE, JSON.stringify(pedidos));
 
   msg.innerHTML = `
     <div style="background:#162016;border:1px solid #00ff88;border-radius:8px;padding:10px;margin-top:10px;">
       <b style="color:#00ff88;">✔ Pedido registrado com sucesso!</b><br>
-      🆔 ${id}<br>
-      👤 ${d}<br>
-      🎮 ${n}<br>
-      📦 ${q}
+      🆔 <b>ID:</b> ${id}<br>
+      👤 <b>Discord:</b> ${d}<br>
+      🎮 <b>Nick:</b> ${n}<br>
+      📦 <b>Quantidade:</b> ${q}
     </div>
   `;
 
-  discord.value = nick.value = "";
+  discord.value = "";
+  nick.value = "";
   qtd.value = 1;
 
   if(!adminPanel.classList.contains("hidden")) render();
@@ -257,6 +290,10 @@ function login(){
 
 function render(){
   lista.innerHTML = "";
+  if (pedidos.length === 0) {
+    lista.innerHTML = `<tr><td colspan="5">Sem encomendas salvas neste navegador.</td></tr>`;
+    return;
+  }
   pedidos.forEach((p,i)=>{
     lista.innerHTML += `
       <tr>
@@ -264,7 +301,7 @@ function render(){
         <td>${p.d}</td>
         <td>${p.n}</td>
         <td>${p.q}</td>
-        <td><button class="btn-small" onclick="entregue(${i})">Entregue</button></td>
+        <td><button class="btn-small" type="button" onclick="entregue(${i})">Entregue</button></td>
       </tr>
     `;
   });
