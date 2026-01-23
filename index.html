@@ -16,7 +16,7 @@
       justify-content:space-between;
       align-items:center;
       gap:12px;
-      position:relative; /* para o dropdown do login */
+      position:relative;
     }
 
     header h1{ margin:0; color:#ff7a00; font-size:20px; }
@@ -26,7 +26,7 @@
       display:flex;
       gap:8px;
       align-items:center;
-      position:relative; /* ancora do dropdown */
+      position:relative;
     }
 
     /* Ícone discreto */
@@ -39,7 +39,7 @@
     }
     #loginIcon:hover{ opacity:1; }
 
-    /* Caixa do login (aparece ao clicar no ícone) */
+    /* Caixa do login */
     #loginBox{
       position:absolute;
       top:30px;
@@ -81,7 +81,6 @@
       margin-left:4px;
     }
 
-    /* Quando logado, o ícone fica “ok” */
     .admin-ok{
       color:#00ff88;
       opacity:1 !important;
@@ -177,6 +176,24 @@
       opacity:.85;
       margin-top:10px;
     }
+
+    /* Admin: editor de preço */
+    .admin-tools{
+      margin-top:14px;
+      padding-top:14px;
+      border-top:1px solid #333;
+      display:grid;
+      gap:10px;
+    }
+    .row{
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:10px;
+      align-items:center;
+    }
+    .row input{ margin-top:0; }
+    .row button{ margin-top:0; }
+    .hint{ font-size:12px; opacity:.8; }
   </style>
 </head>
 
@@ -188,7 +205,7 @@
     <p>Soro de Recuperação Rápida PT-29</p>
   </div>
 
-  <!-- LOGIN DISCRETO (APENAS ÍCONE) -->
+  <!-- LOGIN DISCRETO -->
   <div class="login">
     <span id="loginIcon" title="Área do administrador" onclick="toggleLogin()">👑</span>
     <span id="status"></span>
@@ -210,7 +227,9 @@
         <img id="produtoImg" alt="Lágrimas de Fênix">
 
         <h2>Soro de Recuperação Rápida PT-29</h2>
-        <div class="price">R$ 10.000</div>
+
+        <!-- PREÇO DINÂMICO -->
+        <div class="price" id="priceText">R$ 10.000</div>
 
         <p style="margin-top:12px;">
           Substância injetável experimental secreta de uso militar, conhecida como "Lágrimas de Fênix".
@@ -221,6 +240,18 @@
       <!-- GERENCIADOR -->
       <div class="card hidden" id="adminPanel">
         <h2>👑 Gerenciador de encomendas</h2>
+
+        <!-- EDITAR PREÇO (APENAS ADMIN) -->
+        <div class="admin-tools">
+          <div><b>Editar valor do produto</b></div>
+          <div class="row">
+            <input id="priceInput" inputmode="decimal" placeholder="Ex.: 10000 ou 10000,00">
+            <button class="btn-small" type="button" onclick="salvarPreco()">Salvar</button>
+          </div>
+          <div class="hint">Dica: use apenas números. Você pode digitar com vírgula (ex.: 9999,90).</div>
+          <div id="priceMsg" class="hint"></div>
+        </div>
+
         <table>
           <thead>
             <tr>
@@ -286,7 +317,35 @@ const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1464068318955569447/X7
 
 /* ===== STORAGE ===== */
 const STORAGE = "fenix_pedidos";
-let pedidos = JSON.parse(localStorage.getItem(STORAGE) || "[]");
+
+/* ===== PREÇO (SALVO NO STORAGE) ===== */
+const PRICE_KEY = "fenix_preco_centavos";
+const DEFAULT_PRICE_CENTS = 10000 * 100; // 10.000,00
+
+function getPrecoCentavos(){
+  const raw = localStorage.getItem(PRICE_KEY);
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_PRICE_CENTS;
+  return Math.floor(n);
+}
+
+function setPrecoCentavos(cents){
+  localStorage.setItem(PRICE_KEY, String(Math.floor(cents)));
+}
+
+function formatBRLFromCents(cents){
+  const valor = (cents / 100);
+  // pt-BR: formata como moeda
+  return valor.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
+}
+
+function atualizarPrecoNaTela(){
+  const cents = getPrecoCentavos();
+  document.getElementById("priceText").textContent = formatBRLFromCents(cents);
+}
+
+/* Inicializa preço na tela para TODOS (mesmo sem admin) */
+atualizarPrecoNaTela();
 
 /* ===== LOGIN DROPDOWN ===== */
 function toggleLogin(){
@@ -302,6 +361,9 @@ document.addEventListener("click", (e) => {
     if (!clicouDentro) box.classList.add("hidden");
   }
 });
+
+/* ===== PEDIDOS ===== */
+let pedidos = JSON.parse(localStorage.getItem(STORAGE) || "[]");
 
 function gerarId(){
   return `FX-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`.toUpperCase();
@@ -319,6 +381,8 @@ async function enviar(){
 
   const id = gerarId();
   const dataStr = new Date().toLocaleString();
+  const precoCents = getPrecoCentavos();
+  const precoBRL = formatBRLFromCents(precoCents);
 
   pedidos.push({id,d,n,q, hora:dataStr});
   localStorage.setItem(STORAGE, JSON.stringify(pedidos));
@@ -347,6 +411,7 @@ async function enviar(){
             `👤 Discord: ${d}\n` +
             `🎮 Nick: ${n}\n` +
             `📦 Quantidade: ${q}\n` +
+            `💰 Valor atual: ${precoBRL}\n` +
             `⏰ Data: ${dataStr}`
         })
       });
@@ -384,10 +449,55 @@ function login(){
     status.innerText = "Admin";
     document.getElementById("loginIcon").classList.add("admin-ok");
     document.getElementById("loginBox").classList.add("hidden");
+
+    // Preenche o input do preço com o valor atual
+    document.getElementById("priceInput").value = (getPrecoCentavos()/100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
     render();
   } else {
     status.innerText = "❌";
   }
+}
+
+/* ===== ADMIN: SALVAR PREÇO ===== */
+function parsePrecoParaCentavos(txt){
+  // aceita "10000", "10000,00", "10.000,50", "10000.50"
+  const s = String(txt || "").trim();
+  if (!s) return null;
+
+  // remove espaços e "R$"
+  let t = s.replace(/\s/g, "").replace(/^R\$/i, "");
+
+  // Se tiver vírgula, assume pt-BR (vírgula decimal)
+  // remove pontos de milhar
+  if (t.includes(",")) {
+    t = t.replace(/\./g, "").replace(",", ".");
+  }
+
+  // mantém apenas números e ponto
+  t = t.replace(/[^0-9.]/g, "");
+
+  const num = Number(t);
+  if (!Number.isFinite(num) || num <= 0) return null;
+  return Math.round(num * 100);
+}
+
+function salvarPreco(){
+  const input = document.getElementById("priceInput");
+  const out = document.getElementById("priceMsg");
+
+  const cents = parsePrecoParaCentavos(input.value);
+  if (cents === null) {
+    out.textContent = "❌ Valor inválido. Ex.: 10000 ou 10000,00";
+    out.style.color = "#ffcc00";
+    return;
+  }
+
+  setPrecoCentavos(cents);
+  atualizarPrecoNaTela();
+
+  out.textContent = `✅ Valor atualizado para ${formatBRLFromCents(cents)}.`;
+  out.style.color = "#00ff88";
 }
 
 function render(){
