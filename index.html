@@ -179,6 +179,24 @@
       opacity:.85;
       margin-top:10px;
     }
+
+    /* Admin: editor de preço */
+    .admin-tools{
+      margin-top:14px;
+      padding-top:14px;
+      border-top:1px solid #333;
+      display:grid;
+      gap:10px;
+    }
+    .row{
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:10px;
+      align-items:center;
+    }
+    .row input{ margin-top:0; }
+    .row button{ margin-top:0; }
+    .hint{ font-size:12px; opacity:.8; }
   </style>
 </head>
 
@@ -190,6 +208,7 @@
     <p>Soro de Recuperação Rápida PT-29</p>
   </div>
 
+  <!-- LOGIN DISCRETO -->
   <div class="login">
     <span id="loginIcon" title="Área do administrador" onclick="toggleLogin()">👑</span>
     <span id="status"></span>
@@ -211,7 +230,9 @@
         <img id="produtoImg" alt="Lágrimas de Fênix">
 
         <h2>Soro de Recuperação Rápida PT-29</h2>
-        <div class="price">R$ 10.000</div>
+
+        <!-- PREÇO DINÂMICO -->
+        <div class="price" id="priceText">R$ 10.000</div>
 
         <p style="margin-top:12px;">
           Substância injetável experimental secreta de uso militar, conhecida como "Lágrimas de Fênix".
@@ -222,6 +243,18 @@
       <!-- GERENCIADOR -->
       <div class="card hidden" id="adminPanel">
         <h2>👑 Gerenciador de encomendas</h2>
+
+        <!-- EDITAR PREÇO (APENAS ADMIN) -->
+        <div class="admin-tools">
+          <div><b>Editar valor do produto</b></div>
+          <div class="row">
+            <input id="priceInput" inputmode="decimal" placeholder="Ex.: 10000 ou 10000,00">
+            <button class="btn-small" type="button" onclick="salvarPreco()">Salvar</button>
+          </div>
+          <div class="hint">O valor fica salvo neste navegador/dispositivo.</div>
+          <div id="priceMsg" class="hint"></div>
+        </div>
+
         <table>
           <thead>
             <tr>
@@ -286,9 +319,71 @@ const ADMIN_PASS = "4465-22-1Rgm";
 /* ===== DISCORD WEBHOOK ===== */
 const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1464068318955569447/X7ijBubyKS39gXUO-WgkIe_NAw2LzhZ0ifqbUvrjH7GisdE7X8FxazSWo0BQLIB9GZ1w";
 
-/* ===== STORAGE ===== */
+/* ===== STORAGE (PEDIDOS) ===== */
 const STORAGE = "fenix_pedidos";
 let pedidos = JSON.parse(localStorage.getItem(STORAGE) || "[]");
+
+/* ===== PREÇO (SALVO NO STORAGE) ===== */
+const PRICE_KEY = "fenix_preco_centavos";
+const DEFAULT_PRICE_CENTS = 10000 * 100; // 10.000,00
+
+function getPrecoCentavos(){
+  const raw = localStorage.getItem(PRICE_KEY);
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_PRICE_CENTS;
+  return Math.floor(n);
+}
+
+function setPrecoCentavos(cents){
+  localStorage.setItem(PRICE_KEY, String(Math.floor(cents)));
+}
+
+function formatBRLFromCents(cents){
+  const valor = (cents / 100);
+  return valor.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
+}
+
+function atualizarPrecoNaTela(){
+  document.getElementById("priceText").textContent = formatBRLFromCents(getPrecoCentavos());
+}
+
+function parsePrecoParaCentavos(txt){
+  const s = String(txt || "").trim();
+  if (!s) return null;
+
+  let t = s.replace(/\s/g, "").replace(/^R\$/i, "");
+
+  if (t.includes(",")) {
+    t = t.replace(/\./g, "").replace(",", ".");
+  }
+
+  t = t.replace(/[^0-9.]/g, "");
+
+  const num = Number(t);
+  if (!Number.isFinite(num) || num <= 0) return null;
+  return Math.round(num * 100);
+}
+
+function salvarPreco(){
+  const input = document.getElementById("priceInput");
+  const out = document.getElementById("priceMsg");
+
+  const cents = parsePrecoParaCentavos(input.value);
+  if (cents === null) {
+    out.textContent = "❌ Valor inválido. Ex.: 10000 ou 10000,00";
+    out.style.color = "#ffcc00";
+    return;
+  }
+
+  setPrecoCentavos(cents);
+  atualizarPrecoNaTela();
+
+  out.textContent = `✅ Valor atualizado para ${formatBRLFromCents(cents)}.`;
+  out.style.color = "#00ff88";
+}
+
+/* Inicializa preço (para todos) */
+atualizarPrecoNaTela();
 
 /* ===== LOGIN DROPDOWN ===== */
 function toggleLogin(){
@@ -304,9 +399,7 @@ document.addEventListener("click", (e) => {
   }
 });
 
-/* ===== ANTI-SPAM (POR NAVEGADOR) =====
-   Exemplo: 2 pedidos a cada 30 segundos.
-*/
+/* ===== ANTI-SPAM (POR NAVEGADOR) ===== */
 const SPAM_WINDOW_MS = 30 * 1000; // 30s
 const SPAM_MAX = 2;               // até 2 pedidos por janela
 const SPAM_KEY = "fenix_spam_log";
@@ -330,7 +423,6 @@ function checkRate(){
     return { ok:false, waitMs: Math.max(0, waitMs), log };
   }
 
-  // registra envio
   log.push(now);
   setSpamLog(log);
   return { ok:true, waitMs:0, log };
@@ -382,6 +474,7 @@ async function enviar(){
 
   const id = gerarId();
   const dataStr = new Date().toLocaleString();
+  const precoAtual = document.getElementById("priceText").textContent;
 
   // Salva localmente
   pedidos.push({id,d,n,q, hora:dataStr});
@@ -413,6 +506,7 @@ async function enviar(){
             `👤 Discord: ${d}\n` +
             `🎮 Nick: ${n}\n` +
             `📦 Quantidade: ${q}\n` +
+            `💰 Valor atual: ${precoAtual}\n` +
             `⏰ Data: ${dataStr}`
         })
       });
@@ -450,6 +544,12 @@ function login(){
     status.innerText = "Admin";
     document.getElementById("loginIcon").classList.add("admin-ok");
     document.getElementById("loginBox").classList.add("hidden");
+
+    // preenche o input com o valor atual
+    const cents = getPrecoCentavos();
+    document.getElementById("priceInput").value =
+      (cents/100).toLocaleString("pt-BR", { minimumFractionDigits:2, maximumFractionDigits:2 });
+
     render();
   } else {
     status.innerText = "❌";
