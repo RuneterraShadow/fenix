@@ -212,11 +212,7 @@
 </div>
 
 <script>
-/* ===== IMAGEM (fallback) =====
-   - Tenta "venda-fenix.png" (recomendado)
-   - Se não existir, tenta o nome antigo "Venda fenix!.png" (com encode)
-   - Evita cache velho com ?v=
-*/
+/* ===== IMAGEM (fallback) ===== */
 (function carregarImagem(){
   const img = document.getElementById("produtoImg");
   const v = Date.now();
@@ -239,15 +235,21 @@
 /* ===== ADMIN ===== */
 const ADMIN_USER = "Runeterra Shadow";
 const ADMIN_PASS = "4465-22-1Rgm";
-const STORAGE = "fenix_pedidos";
 
+/* ===== DISCORD WEBHOOK (COLE O SEU AQUI) =====
+   IMPORTANTE: Se você colar o webhook aqui, ele fica visível no código do site.
+*/
+const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1464068318955569447/X7ijBubyKS39gXUO-WgkIe_NAw2LzhZ0ifqbUvrjH7GisdE7X8FxazSWo0BQLIB9GZ1w";
+
+/* ===== STORAGE ===== */
+const STORAGE = "fenix_pedidos";
 let pedidos = JSON.parse(localStorage.getItem(STORAGE) || "[]");
 
 function gerarId(){
   return `FX-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`.toUpperCase();
 }
 
-function enviar(){
+async function enviar(){
   const d = discord.value.trim();
   const n = nick.value.trim();
   const q = parseInt(qtd.value, 10);
@@ -258,8 +260,51 @@ function enviar(){
   }
 
   const id = gerarId();
-  pedidos.push({id,d,n,q, hora:new Date().toLocaleString()});
+  const dataStr = new Date().toLocaleString();
+
+  // 1) Salva localmente SEMPRE
+  pedidos.push({id,d,n,q, hora:dataStr});
   localStorage.setItem(STORAGE, JSON.stringify(pedidos));
+
+  // 2) Confirmação visual imediata (cliente)
+  msg.innerHTML = `
+    <div style="background:#162016;border:1px solid #00ff88;border-radius:8px;padding:10px;margin-top:10px;">
+      <b style="color:#00ff88;">✔ Pedido registrado com sucesso!</b><br>
+      🆔 <b>ID:</b> ${id}<br>
+      👤 <b>Discord:</b> ${d}<br>
+      🎮 <b>Nick:</b> ${n}<br>
+      📦 <b>Quantidade:</b> ${q}
+      <div style="opacity:.85;margin-top:6px;">⏳ Enviando para o Discord...</div>
+    </div>
+  `;
+
+  // 3) Envia para o Discord (PENDENTE)
+  let discordOk = false;
+  if (DISCORD_WEBHOOK && DISCORD_WEBHOOK.startsWith("https://discord.com/api/webhooks/")) {
+    try {
+      await fetch(DISCORD_WEBHOOK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content:
+            `🟡 **PENDENTE — NOVA ENCOMENDA (LÁGRIMAS DE FÊNIX)**\n` +
+            `🆔 ID: ${id}\n` +
+            `👤 Discord: ${d}\n` +
+            `🎮 Nick: ${n}\n` +
+            `📦 Quantidade: ${q}\n` +
+            `⏰ Data: ${dataStr}`
+        })
+      });
+      discordOk = true;
+    } catch (_) {
+      discordOk = false;
+    }
+  }
+
+  // 4) Atualiza a mensagem do cliente com status de envio ao Discord
+  const extra = discordOk
+    ? `<div style="color:#00ff88;margin-top:6px;">✅ Enviado para o Discord.</div>`
+    : `<div style="color:#ffcc00;margin-top:6px;">⚠️ Não foi possível enviar para o Discord (verifique o webhook).</div>`;
 
   msg.innerHTML = `
     <div style="background:#162016;border:1px solid #00ff88;border-radius:8px;padding:10px;margin-top:10px;">
@@ -268,13 +313,16 @@ function enviar(){
       👤 <b>Discord:</b> ${d}<br>
       🎮 <b>Nick:</b> ${n}<br>
       📦 <b>Quantidade:</b> ${q}
+      ${extra}
     </div>
   `;
 
+  // 5) Limpa campos
   discord.value = "";
   nick.value = "";
   qtd.value = 1;
 
+  // 6) Atualiza admin (se estiver aberto)
   if(!adminPanel.classList.contains("hidden")) render();
 }
 
