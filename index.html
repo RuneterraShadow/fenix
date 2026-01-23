@@ -10,16 +10,17 @@
     header { background:#1a1a1a; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; }
     header h1 { margin:0; color:#ff7a00; font-size:20px; }
 
+    /* Login no canto superior direito */
     .top-right { display:flex; align-items:center; gap:8px; }
-    .top-right input {
+    .top-right input{
       width:120px; padding:7px 8px; border:none; border-radius:6px;
       background:#2b2b2b; color:#fff;
     }
-    .top-right button {
+    .top-right button{
       width:auto; padding:7px 10px; border:none; border-radius:6px;
       background:#ff7a00; color:#000; font-weight:bold; cursor:pointer;
     }
-    .top-right button:hover { background:#ff9a33; }
+    .top-right button:hover{ background:#ff9a33; }
     .badge { font-size:13px; opacity:.95; }
 
     .container { max-width:900px; margin:auto; padding:20px; }
@@ -27,7 +28,7 @@
     img { max-width:100%; border-radius:10px; }
     .price { color:#00ff88; font-size:24px; font-weight:bold; }
 
-    input, button { width:100%; padding:12px; margin-top:10px; border:none; border-radius:6px; }
+    .form input, .form button { width:100%; padding:12px; margin-top:10px; border:none; border-radius:6px; }
     .form input { background:#2b2b2b; color:#fff; }
     .primary { background:#ff7a00; color:#000; font-weight:bold; cursor:pointer; }
     .primary:hover { background:#ff9a33; }
@@ -36,7 +37,8 @@
     table { width:100%; border-collapse:collapse; margin-top:10px; }
     th, td { border:1px solid #333; padding:8px; text-align:left; }
     th { background:#2a2a2a; }
-    .btn-small { width:auto; padding:6px 10px; font-size:12px; }
+    .btn-small { width:auto; padding:6px 10px; font-size:12px; border:none; border-radius:6px; cursor:pointer; background:#ff7a00; color:#000; font-weight:bold; }
+    .btn-small:hover { background:#ff9a33; }
     .muted { opacity:.85; font-size:13px; }
   </style>
 </head>
@@ -45,7 +47,6 @@
 <header>
   <h1>Lágrimas de Fênix</h1>
 
-  <!-- Login simples no canto superior direito -->
   <div class="top-right">
     <input id="adminUser" placeholder="Usuário" autocomplete="off">
     <input id="adminPass" type="password" placeholder="Senha" autocomplete="off">
@@ -71,10 +72,9 @@
     <input id="qtd" type="number" min="1" value="1" placeholder="Quantidade">
     <button type="button" class="primary" onclick="enviarEncomenda()">Enviar Encomenda</button>
     <p id="msg"></p>
-    <p class="muted">Pedidos são enviados somente para o Discord.</p>
+    <p class="muted">Pedidos são enviados somente para o Discord. O gerenciador salva neste navegador.</p>
   </div>
 
-  <!-- Painel aparece só quando logar como admin -->
   <div class="card hidden" id="adminPanel">
     <h2>👑 Gerenciador de Encomendas</h2>
     <table>
@@ -90,8 +90,14 @@
       <tbody id="adminLista"></tbody>
     </table>
 
-    <button type="button" class="btn-small" onclick="limparLista()">🗑️ Limpar lista (sessão)</button>
-    <p class="muted">Obs.: essa lista é só da sessão aberta no navegador. O “registro oficial” fica no Discord.</p>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+      <button type="button" class="btn-small" onclick="limparLista()">🗑️ Limpar tudo</button>
+    </div>
+
+    <p class="muted">
+      Obs.: este gerenciador salva no <b>localStorage</b> (neste navegador/dispositivo).
+      Para ver em qualquer aparelho, precisa de planilha/bot/backend.
+    </p>
   </div>
 
 </div>
@@ -100,14 +106,26 @@
 /* ====== CONFIG ====== */
 const ADMIN_USER = "Runeterra Shadow";
 const ADMIN_PASS = "4465-22-1Rgm";
-
-/* Webhook do Discord (vai ficar visível no HTML).
-   Se quiser esconder de vez, volta com serviço intermediário. */
 const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1464068318955569447/X7ijBubyKS39gXUO-WgkIe_NAw2LzhZ0ifqbUvrjH7GisdE7X8FxazSWo0BQLIB9GZ1w";
 
-/* ====== ESTADO ====== */
+/* ====== ESTADO + PERSISTÊNCIA ====== */
 let adminLogado = false;
-let encomendas = []; // lista só da sessão
+let encomendas = [];
+const STORAGE_KEY = "fenix_encomendas_v1";
+
+function salvarLocal() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(encomendas));
+}
+function carregarLocal() {
+  try {
+    encomendas = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    if (!Array.isArray(encomendas)) encomendas = [];
+  } catch {
+    encomendas = [];
+  }
+}
+// carrega ao abrir a página
+carregarLocal();
 
 /* ====== LOGIN ADMIN ====== */
 function loginAdmin() {
@@ -118,11 +136,18 @@ function loginAdmin() {
   if (u === ADMIN_USER && p === ADMIN_PASS) {
     adminLogado = true;
     st.textContent = "👑 Admin";
+
+    // mostra painel
     document.getElementById("adminPanel").classList.remove("hidden");
+
+    // esconde inputs + mostra sair
     document.getElementById("btnLogin").classList.add("hidden");
     document.getElementById("btnLogout").classList.remove("hidden");
     document.getElementById("adminUser").classList.add("hidden");
     document.getElementById("adminPass").classList.add("hidden");
+
+    // garante que está carregado e desenha
+    carregarLocal();
     atualizarAdmin();
   } else {
     st.textContent = "❌";
@@ -132,6 +157,7 @@ function loginAdmin() {
 function logoutAdmin() {
   adminLogado = false;
   document.getElementById("loginStatus").textContent = "";
+
   document.getElementById("adminPanel").classList.add("hidden");
   document.getElementById("btnLogin").classList.remove("hidden");
   document.getElementById("btnLogout").classList.add("hidden");
@@ -155,14 +181,21 @@ function enviarEncomenda() {
   msg.textContent = "⏳ Enviando encomenda...";
 
   const agora = new Date();
-  const pedido = { discord, nick, qtd, hora: agora.toLocaleString() };
+  const pedido = {
+    discord,
+    nick,
+    qtd,
+    hora: agora.toLocaleString()
+  };
 
-  // Se estiver logado, também mostra no painel local
-  if (adminLogado) {
-    encomendas.push(pedido);
-    atualizarAdmin();
-  }
+  // ✅ CORREÇÃO: sempre salva no gerenciador (mesmo sem estar logado)
+  encomendas.push(pedido);
+  salvarLocal();
 
+  // se estiver logado, atualiza painel na hora
+  if (adminLogado) atualizarAdmin();
+
+  // envia para o Discord
   fetch(DISCORD_WEBHOOK, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -193,7 +226,7 @@ function atualizarAdmin() {
 
   if (encomendas.length === 0) {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="5">Sem encomendas nesta sessão.</td>`;
+    tr.innerHTML = `<td colspan="5">Sem encomendas salvas neste navegador.</td>`;
     tbody.appendChild(tr);
     return;
   }
@@ -212,12 +245,14 @@ function atualizarAdmin() {
 
 function marcarEntregue(i) {
   encomendas.splice(i, 1);
+  salvarLocal();
   atualizarAdmin();
 }
 
 function limparLista() {
-  if (!confirm("Limpar a lista desta sessão?")) return;
+  if (!confirm("Remover TODAS as encomendas salvas neste navegador?")) return;
   encomendas = [];
+  salvarLocal();
   atualizarAdmin();
 }
 
