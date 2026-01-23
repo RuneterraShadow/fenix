@@ -3,23 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Encomendas - Lágrimas de Fênix</title>
+  <title>Lágrimas de Fênix — Encomendas</title>
   <style>
-    body { font-family: Arial, sans-serif; margin:0; background:#0f0f0f; color:#fff; }
-    header { background:#1a1a1a; padding:15px 20px; display:flex; justify-content:space-between; align-items:center; }
-    header h1 { margin:0; color:#ff7a00; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#0f0f0f; color:#fff; }
+    header { background:#1a1a1a; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; }
+    header h1 { margin:0; color:#ff7a00; font-size:20px; }
+    .top-right { display:flex; align-items:center; gap:10px; }
+    .btn-discord { background:#5865F2; color:#fff; border:none; border-radius:6px; padding:8px 12px; cursor:pointer; font-weight:bold; }
+    .btn-discord:hover { opacity:.9; }
+    .badge { font-size:14px; }
     .container { max-width:900px; margin:auto; padding:20px; }
     .card { background:#1e1e1e; border-radius:10px; padding:20px; margin-bottom:20px; }
     img { max-width:100%; border-radius:10px; }
     .price { color:#00ff88; font-size:24px; font-weight:bold; }
     input, button { width:100%; padding:12px; margin-top:10px; border:none; border-radius:6px; }
-    button { background:#5865F2; color:#fff; font-weight:bold; cursor:pointer; }
-    button:hover { opacity:0.9; }
-    table { width:100%; border-collapse:collapse; margin-top:10px; }
-    th, td { border:1px solid #333; padding:8px; }
-    th { background:#2a2a2a; }
+    input { background:#2b2b2b; color:#fff; }
+    button.primary { background:#ff7a00; color:#000; font-weight:bold; cursor:pointer; }
+    button.primary:hover { background:#ff9a33; }
     .hidden { display:none; }
-    .top-right button { width:auto; padding:8px 14px; }
+    table { width:100%; border-collapse:collapse; margin-top:10px; }
+    th, td { border:1px solid #333; padding:8px; text-align:left; }
+    th { background:#2a2a2a; }
+    .btn-small { padding:6px 10px; font-size:12px; width:auto; }
   </style>
 </head>
 <body>
@@ -27,8 +33,8 @@
 <header>
   <h1>Lágrimas de Fênix</h1>
   <div class="top-right">
-    <button onclick="loginDiscord()">Entrar com Discord</button>
-    <span id="loginStatus"></span>
+    <button id="btnLogin" class="btn-discord" onclick="loginDiscord()">Entrar com Discord</button>
+    <span id="loginStatus" class="badge"></span>
   </div>
 </header>
 
@@ -46,7 +52,7 @@
     <input id="discord" placeholder="@ do Discord">
     <input id="nick" placeholder="Nick no jogo">
     <input id="qtd" type="number" min="1" value="1">
-    <button onclick="enviarEncomenda()">Enviar Encomenda</button>
+    <button class="primary" onclick="enviarEncomenda()">Enviar Encomenda</button>
     <p id="msg"></p>
   </div>
 
@@ -54,7 +60,12 @@
     <h2>👑 Gerenciador de Encomendas (Admin)</h2>
     <table>
       <thead>
-        <tr><th>Discord</th><th>Nick</th><th>Qtd</th><th>Ação</th></tr>
+        <tr>
+          <th>Discord</th>
+          <th>Nick</th>
+          <th>Qtd</th>
+          <th>Ação</th>
+        </tr>
       </thead>
       <tbody id="adminLista"></tbody>
     </table>
@@ -63,22 +74,23 @@
 </div>
 
 <script>
-// 🔐 CONFIGURAÇÃO
-const DISCORD_CLIENT_ID = "COLE_SEU_CLIENT_ID_AQUI";
-const ADMIN_DISCORD_ID = "1464077708723097702"; // ex: 123456789012345678
-const REDIRECT_URI = window.location.origin + window.location.pathname;
+// ================= CONFIGURAÇÃO =================
+const DISCORD_CLIENT_ID = "COLE_SEU_CLIENT_ID_AQUI"; // obrigatório
+const ADMIN_DISCORD_ID = "1464077708723097702"; // SEU ID (admin único)
 const WEBHOOK = "https://discord.com/api/webhooks/1464068318955569447/X7ijBubyKS39gXUO-WgkIe_NAw2LzhZ0ifqbUvrjH7GisdE7X8FxazSWo0BQLIB9GZ1w";
+const REDIRECT_URI = window.location.origin + window.location.pathname;
 
-let encomendas = [];
+// ================= ESTADO =================
 let adminLogado = false;
+let encomendas = [];
 
-// LOGIN VIA DISCORD
+// ================= LOGIN DISCORD =================
 function loginDiscord() {
-  const url = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify`;
-  window.location.href = url;
+  const authURL = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify`;
+  window.location.href = authURL;
 }
 
-// PROCESSA LOGIN
+// Processa retorno OAuth
 if (window.location.hash.includes('access_token')) {
   const params = new URLSearchParams(window.location.hash.substring(1));
   const token = params.get('access_token');
@@ -86,44 +98,49 @@ if (window.location.hash.includes('access_token')) {
   fetch('https://discord.com/api/users/@me', {
     headers: { Authorization: `Bearer ${token}` }
   })
-  .then(res => res.json())
+  .then(r => r.json())
   .then(user => {
-    if (user.id === ADMIN_DISCORD_ID) {
+    if (user && user.id === ADMIN_DISCORD_ID) {
       adminLogado = true;
-      document.getElementById('loginStatus').innerText = '👑 Admin'; document.querySelector('.top-right button').style.display = 'none';
+      document.getElementById('loginStatus').innerText = '👑 Admin';
       document.getElementById('adminPanel').classList.remove('hidden');
+      document.getElementById('btnLogin').style.display = 'none';
     } else {
       document.getElementById('loginStatus').innerText = '❌ Sem permissão';
     }
+    // limpa o hash da URL
+    history.replaceState(null, '', window.location.pathname);
+  })
+  .catch(() => {
+    document.getElementById('loginStatus').innerText = 'Erro no login';
   });
 }
 
-// ENCOMENDA
+// ================= ENCOMENDA =================
 function enviarEncomenda() {
   const discord = document.getElementById('discord').value.trim();
   const nick = document.getElementById('nick').value.trim();
-  const qtd = document.getElementById('qtd').value;
+  const qtd = parseInt(document.getElementById('qtd').value, 10);
   const msg = document.getElementById('msg');
 
-  if (!discord || !nick || qtd < 1) {
-    msg.innerText = 'Preencha todos os campos';
+  if (!discord || !nick || !qtd || qtd < 1) {
+    msg.innerText = 'Preencha todos os campos corretamente.';
     return;
   }
 
   const pedido = { discord, nick, qtd };
-  encomendas.push(pedido);
-  if (adminLogado) atualizarAdmin();
+  if (adminLogado) {
+    encomendas.push(pedido);
+    atualizarAdmin();
+  }
 
   fetch(WEBHOOK, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      content: `🧪 **NOVA ENCOMENDA**
-👤 ${discord}
-🎮 ${nick}
-📦 ${qtd}`
+      content: `🧪 **NOVA ENCOMENDA — LÁGRIMAS DE FÊNIX**\n👤 Discord: ${discord}\n🎮 Nick: ${nick}\n📦 Quantidade: ${qtd}`
     })
-  });
+  }).catch(() => {});
 
   msg.innerText = '✅ Encomenda enviada!';
   document.getElementById('discord').value = '';
@@ -131,17 +148,18 @@ function enviarEncomenda() {
   document.getElementById('qtd').value = 1;
 }
 
+// ================= ADMIN =================
 function atualizarAdmin() {
   const lista = document.getElementById('adminLista');
   lista.innerHTML = '';
   encomendas.forEach((e, i) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${e.discord}</td><td>${e.nick}</td><td>${e.qtd}</td><td><button onclick="remover(${i})">Entregue</button></td>`;
+    tr.innerHTML = `<td>${e.discord}</td><td>${e.nick}</td><td>${e.qtd}</td><td><button class="btn-small" onclick="marcarEntregue(${i})">Entregue</button></td>`;
     lista.appendChild(tr);
   });
 }
 
-function remover(i) {
+function marcarEntregue(i) {
   encomendas.splice(i, 1);
   atualizarAdmin();
 }
