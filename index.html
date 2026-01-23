@@ -16,6 +16,7 @@
       justify-content:space-between;
       align-items:center;
       gap:12px;
+      position:relative; /* para o dropdown do login */
     }
 
     header h1{ margin:0; color:#ff7a00; font-size:20px; }
@@ -25,6 +26,31 @@
       display:flex;
       gap:8px;
       align-items:center;
+      position:relative; /* ancora do dropdown */
+    }
+
+    /* Ícone discreto */
+    #loginIcon{
+      cursor:pointer;
+      font-size:18px;
+      opacity:.55;
+      user-select:none;
+      transition:opacity .15s ease;
+    }
+    #loginIcon:hover{ opacity:1; }
+
+    /* Caixa do login (aparece ao clicar no ícone) */
+    #loginBox{
+      position:absolute;
+      top:30px;
+      right:0;
+      background:#1e1e1e;
+      border:1px solid #333;
+      border-radius:10px;
+      padding:12px;
+      box-shadow:0 10px 30px rgba(0,0,0,.45);
+      width:220px;
+      z-index:9999;
     }
 
     .login input{
@@ -32,8 +58,9 @@
       color:#fff;
       border:none;
       border-radius:6px;
-      padding:6px 8px;
-      width:120px;
+      padding:10px 10px;
+      width:100%;
+      margin-top:10px;
     }
 
     .login button{
@@ -41,9 +68,23 @@
       color:#000;
       border:none;
       border-radius:6px;
-      padding:6px 10px;
+      padding:10px 10px;
       font-weight:bold;
       cursor:pointer;
+      width:100%;
+      margin-top:10px;
+    }
+
+    #status{
+      font-size:12px;
+      opacity:.85;
+      margin-left:4px;
+    }
+
+    /* Quando logado, o ícone fica “ok” */
+    .admin-ok{
+      color:#00ff88;
+      opacity:1 !important;
     }
 
     .container{
@@ -60,6 +101,7 @@
 
     @media (max-width:900px){
       .grid{ grid-template-columns:1fr; }
+      #loginBox{ right:0; left:auto; }
     }
 
     .card{
@@ -146,11 +188,16 @@
     <p>Soro de Recuperação Rápida PT-29</p>
   </div>
 
+  <!-- LOGIN DISCRETO (APENAS ÍCONE) -->
   <div class="login">
-    <input id="adminUser" placeholder="Usuário">
-    <input id="adminPass" type="password" placeholder="Senha">
-    <button type="button" onclick="login()">Entrar</button>
+    <span id="loginIcon" title="Área do administrador" onclick="toggleLogin()">👑</span>
     <span id="status"></span>
+
+    <div id="loginBox" class="hidden">
+      <input id="adminUser" placeholder="Usuário">
+      <input id="adminPass" type="password" placeholder="Senha">
+      <button type="button" onclick="login()">Entrar</button>
+    </div>
   </div>
 </header>
 
@@ -160,13 +207,11 @@
     <!-- PRODUTO -->
     <div>
       <div class="card product">
-        <!-- Imagem com fallback automático (desktop e celular) -->
         <img id="produtoImg" alt="Lágrimas de Fênix">
 
         <h2>Soro de Recuperação Rápida PT-29</h2>
         <div class="price">R$ 10.000</div>
 
-        <!-- FRASE EXATA -->
         <p style="margin-top:12px;">
           Substância injetável experimental secreta de uso militar, conhecida como "Lágrimas de Fênix".
           Proporciona estabilização e recuperação rápida e instantânea de QUALQUER lesão e toxina simultaneamente.
@@ -236,14 +281,27 @@
 const ADMIN_USER = "Runeterra Shadow";
 const ADMIN_PASS = "4465-22-1Rgm";
 
-/* ===== DISCORD WEBHOOK (COLE O SEU AQUI) =====
-   IMPORTANTE: Se você colar o webhook aqui, ele fica visível no código do site.
-*/
+/* ===== DISCORD WEBHOOK ===== */
 const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1464068318955569447/X7ijBubyKS39gXUO-WgkIe_NAw2LzhZ0ifqbUvrjH7GisdE7X8FxazSWo0BQLIB9GZ1w";
 
 /* ===== STORAGE ===== */
 const STORAGE = "fenix_pedidos";
 let pedidos = JSON.parse(localStorage.getItem(STORAGE) || "[]");
+
+/* ===== LOGIN DROPDOWN ===== */
+function toggleLogin(){
+  document.getElementById("loginBox").classList.toggle("hidden");
+}
+
+/* Fecha o login ao clicar fora */
+document.addEventListener("click", (e) => {
+  const box = document.getElementById("loginBox");
+  const icon = document.getElementById("loginIcon");
+  if (!box.classList.contains("hidden")) {
+    const clicouDentro = box.contains(e.target) || icon.contains(e.target);
+    if (!clicouDentro) box.classList.add("hidden");
+  }
+});
 
 function gerarId(){
   return `FX-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`.toUpperCase();
@@ -262,11 +320,9 @@ async function enviar(){
   const id = gerarId();
   const dataStr = new Date().toLocaleString();
 
-  // 1) Salva localmente SEMPRE
   pedidos.push({id,d,n,q, hora:dataStr});
   localStorage.setItem(STORAGE, JSON.stringify(pedidos));
 
-  // 2) Confirmação visual imediata (cliente)
   msg.innerHTML = `
     <div style="background:#162016;border:1px solid #00ff88;border-radius:8px;padding:10px;margin-top:10px;">
       <b style="color:#00ff88;">✔ Pedido registrado com sucesso!</b><br>
@@ -278,7 +334,6 @@ async function enviar(){
     </div>
   `;
 
-  // 3) Envia para o Discord (PENDENTE)
   let discordOk = false;
   if (DISCORD_WEBHOOK && DISCORD_WEBHOOK.startsWith("https://discord.com/api/webhooks/")) {
     try {
@@ -301,7 +356,6 @@ async function enviar(){
     }
   }
 
-  // 4) Atualiza a mensagem do cliente com status de envio ao Discord
   const extra = discordOk
     ? `<div style="color:#00ff88;margin-top:6px;">✅ Enviado para o Discord.</div>`
     : `<div style="color:#ffcc00;margin-top:6px;">⚠️ Não foi possível enviar para o Discord (verifique o webhook).</div>`;
@@ -317,19 +371,19 @@ async function enviar(){
     </div>
   `;
 
-  // 5) Limpa campos
   discord.value = "";
   nick.value = "";
   qtd.value = 1;
 
-  // 6) Atualiza admin (se estiver aberto)
   if(!adminPanel.classList.contains("hidden")) render();
 }
 
 function login(){
   if(adminUser.value === ADMIN_USER && adminPass.value === ADMIN_PASS){
     adminPanel.classList.remove("hidden");
-    status.innerText = "👑";
+    status.innerText = "Admin";
+    document.getElementById("loginIcon").classList.add("admin-ok");
+    document.getElementById("loginBox").classList.add("hidden");
     render();
   } else {
     status.innerText = "❌";
