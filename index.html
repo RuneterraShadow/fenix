@@ -228,7 +228,6 @@
 
         <h2>Soro de Recuperação Rápida PT-29</h2>
 
-        <!-- PREÇO GLOBAL -->
         <div class="price" id="priceText">Carregando...</div>
 
         <p style="margin-top:12px;">
@@ -306,9 +305,10 @@
   img.src = tentativas[0];
 })();
 
-/* ===== ADMIN ===== */
+/* ===== ADMIN (credenciais locais para liberar painel) ===== */
 const ADMIN_USER = "Runeterra Shadow";
 const ADMIN_PASS = "4465-22-1Rgm";
+let adminSession = null; // { user, pass }
 
 /* ===== DISCORD WEBHOOK ===== */
 const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1464068318955569447/X7ijBubyKS39gXUO-WgkIe_NAw2LzhZ0ifqbUvrjH7GisdE7X8FxazSWo0BQLIB9GZ1w";
@@ -323,6 +323,10 @@ let pedidos = JSON.parse(localStorage.getItem(STORAGE) || "[]");
 /* ===== PREÇO GLOBAL ===== */
 const DEFAULT_PRICE_CENTS = 10000 * 100;
 let priceCacheCents = null;
+
+function isDesktop(){
+  return !/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
+}
 
 function formatBRLFromCents(cents){
   return (cents / 100).toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
@@ -362,27 +366,40 @@ function parsePrecoParaCentavos(txt){
   return Math.round(num * 100);
 }
 
-/* ✅ SALVAR GLOBAL via GET (evita CORS / Failed to fetch) */
+/* ✅ SALVAR GLOBAL via POST (compatível com seu Apps Script) */
 async function setPrecoCentavosRemoto(cents){
-  const qs =
-    `action=setprice` +
-    `&adminUser=${encodeURIComponent(ADMIN_USER)}` +
-    `&adminPass=${encodeURIComponent(ADMIN_PASS)}` +
-    `&priceCents=${encodeURIComponent(String(Math.floor(cents)))}` +
-    `&t=${Date.now()}`;
+  if (!adminSession) throw new Error("Não autorizado");
+  if (!isDesktop()) throw new Error("Acesso somente PC");
 
-  const url = `${PRICE_API_URL}?${qs}`;
+  const payload = {
+    action: "setprice",
+    adminUser: adminSession.user,
+    adminPass: adminSession.pass,
+    priceCents: Math.floor(cents),
+    ua: navigator.userAgent
+  };
 
-  const r = await fetch(url, { method:"GET", cache:"no-store" });
+  const r = await fetch(PRICE_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
   const j = await r.json();
-
   if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "Falha ao salvar");
+
   priceCacheCents = Math.floor(cents);
 }
 
 async function salvarPreco(){
   const input = document.getElementById("priceInput");
   const out = document.getElementById("priceMsg");
+
+  if (!isDesktop()) {
+    out.textContent = "❌ Acesso somente PC.";
+    out.style.color = "#ffcc00";
+    return;
+  }
 
   const cents = parsePrecoParaCentavos(input.value);
   if (cents === null) {
@@ -400,7 +417,6 @@ async function salvarPreco(){
     out.textContent = `✅ Valor global atualizado para ${formatBRLFromCents(cents)}.`;
     out.style.color = "#00ff88";
 
-    // recarrega do servidor pra confirmar
     setTimeout(carregarPrecoRemoto, 600);
   } catch(e){
     out.textContent = `❌ Erro ao salvar: ${e.message}`;
@@ -410,8 +426,13 @@ async function salvarPreco(){
 
 /* ===== LOGIN DROPDOWN ===== */
 function toggleLogin(){
+  if (!isDesktop()) {
+    status.innerText = "PC";
+    return;
+  }
   document.getElementById("loginBox").classList.toggle("hidden");
 }
+
 document.addEventListener("click", (e) => {
   const box = document.getElementById("loginBox");
   const icon = document.getElementById("loginIcon");
@@ -547,7 +568,14 @@ async function enviar(){
 }
 
 function login(){
+  if (!isDesktop()) {
+    status.innerText = "PC";
+    return;
+  }
+
   if(adminUser.value === ADMIN_USER && adminPass.value === ADMIN_PASS){
+    adminSession = { user: adminUser.value, pass: adminPass.value };
+
     adminPanel.classList.remove("hidden");
     status.innerText = "Admin";
     document.getElementById("loginIcon").classList.add("admin-ok");
@@ -560,6 +588,7 @@ function login(){
     render();
   } else {
     status.innerText = "❌";
+    adminSession = null;
   }
 }
 
@@ -598,10 +627,15 @@ function limpar(){
 
 /* ===== Inicializa preço GLOBAL ao abrir ===== */
 carregarPrecoRemoto();
+
+/* ===== PC-only: esconde a coroa em mobile ===== */
+(function pcOnlyUI(){
+  if (!isDesktop()) {
+    document.getElementById("loginIcon").style.display = "none";
+    document.getElementById("status").innerText = "";
+  }
+})();
 </script>
 
 </body>
 </html>
-
-
-
