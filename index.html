@@ -366,28 +366,25 @@ function parsePrecoParaCentavos(txt){
   return Math.round(num * 100);
 }
 
-/* ✅ SALVAR GLOBAL via POST (compatível com seu Apps Script) */
+/* ✅✅ SALVAR GLOBAL via GET (resolve Failed to fetch do POST/CORS) */
 async function setPrecoCentavosRemoto(cents){
   if (!adminSession) throw new Error("Não autorizado");
   if (!isDesktop()) throw new Error("Acesso somente PC");
 
-  const payload = {
-    action: "setprice",
-    adminUser: adminSession.user,
-    adminPass: adminSession.pass,
-    priceCents: Math.floor(cents),
-    ua: navigator.userAgent
-  };
+  const qs =
+    `action=setprice` +
+    `&adminUser=${encodeURIComponent(adminSession.user)}` +
+    `&adminPass=${encodeURIComponent(adminSession.pass)}` +
+    `&priceCents=${encodeURIComponent(String(Math.floor(cents)))}` +
+    `&ua=${encodeURIComponent(navigator.userAgent)}` +
+    `&t=${Date.now()}`;
 
-  const r = await fetch(PRICE_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
+  const url = `${PRICE_API_URL}?${qs}`;
 
+  const r = await fetch(url, { method:"GET", cache:"no-store" });
   const j = await r.json();
-  if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "Falha ao salvar");
 
+  if (!j || !j.ok) throw new Error((j && j.error) ? j.error : "Falha ao salvar");
   priceCacheCents = Math.floor(cents);
 }
 
