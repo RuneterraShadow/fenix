@@ -180,7 +180,6 @@
       margin-top:10px;
     }
 
-    /* Admin: editor de preço */
     .admin-tools{
       margin-top:14px;
       padding-top:14px;
@@ -208,7 +207,6 @@
     <p>Soro de Recuperação Rápida PT-29</p>
   </div>
 
-  <!-- LOGIN DISCRETO -->
   <div class="login">
     <span id="loginIcon" title="Área do administrador" onclick="toggleLogin()">👑</span>
     <span id="status"></span>
@@ -224,15 +222,14 @@
 <div class="container">
   <div class="grid">
 
-    <!-- PRODUTO -->
     <div>
       <div class="card product">
         <img id="produtoImg" alt="Lágrimas de Fênix">
 
         <h2>Soro de Recuperação Rápida PT-29</h2>
 
-        <!-- PREÇO DINÂMICO -->
-        <div class="price" id="priceText">R$ 10.000</div>
+        <!-- PREÇO GLOBAL (carrega do Apps Script) -->
+        <div class="price" id="priceText">Carregando...</div>
 
         <p style="margin-top:12px;">
           Substância injetável experimental secreta de uso militar, conhecida como "Lágrimas de Fênix".
@@ -240,18 +237,16 @@
         </p>
       </div>
 
-      <!-- GERENCIADOR -->
       <div class="card hidden" id="adminPanel">
         <h2>👑 Gerenciador de encomendas</h2>
 
-        <!-- EDITAR PREÇO (APENAS ADMIN) -->
         <div class="admin-tools">
-          <div><b>Editar valor do produto</b></div>
+          <div><b>Editar valor do produto (GLOBAL)</b></div>
           <div class="row">
             <input id="priceInput" inputmode="decimal" placeholder="Ex.: 10000 ou 10000,00">
             <button class="btn-small" type="button" onclick="salvarPreco()">Salvar</button>
           </div>
-          <div class="hint">O valor fica salvo neste navegador/dispositivo.</div>
+          <div class="hint">O valor fica salvo no Google Apps Script e vale para todos os dispositivos.</div>
           <div id="priceMsg" class="hint"></div>
         </div>
 
@@ -274,7 +269,6 @@
       </div>
     </div>
 
-    <!-- FORMULÁRIO -->
     <div>
       <div class="card">
         <h2>📦 Fazer encomenda</h2>
@@ -319,24 +313,16 @@ const ADMIN_PASS = "4465-22-1Rgm";
 /* ===== DISCORD WEBHOOK ===== */
 const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1464068318955569447/X7ijBubyKS39gXUO-WgkIe_NAw2LzhZ0ifqbUvrjH7GisdE7X8FxazSWo0BQLIB9GZ1w";
 
-/* ===== STORAGE (PEDIDOS) ===== */
+/* ===== PRICE API (Apps Script) ===== */
+const PRICE_API_URL = "https://script.google.com/macros/s/AKfycbwKywwfhrraOd4LAkeJt6kH8QnDLWFbp5qOxtw8DANIheA9dv9ulX1frzTokT3fONCJ/exec";
+
+/* ===== STORAGE (PEDIDOS locais) ===== */
 const STORAGE = "fenix_pedidos";
 let pedidos = JSON.parse(localStorage.getItem(STORAGE) || "[]");
 
-/* ===== PREÇO (SALVO NO STORAGE) ===== */
-const PRICE_KEY = "fenix_preco_centavos";
-const DEFAULT_PRICE_CENTS = 10000 * 100; // 10.000,00
-
-function getPrecoCentavos(){
-  const raw = localStorage.getItem(PRICE_KEY);
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n <= 0) return DEFAULT_PRICE_CENTS;
-  return Math.floor(n);
-}
-
-function setPrecoCentavos(cents){
-  localStorage.setItem(PRICE_KEY, String(Math.floor(cents)));
-}
+/* ===== PREÇO GLOBAL ===== */
+const DEFAULT_PRICE_CENTS = 10000 * 100;
+let priceCacheCents = null;
 
 function formatBRLFromCents(cents){
   const valor = (cents / 100);
@@ -344,7 +330,22 @@ function formatBRLFromCents(cents){
 }
 
 function atualizarPrecoNaTela(){
-  document.getElementById("priceText").textContent = formatBRLFromCents(getPrecoCentavos());
+  const cents = (priceCacheCents ?? DEFAULT_PRICE_CENTS);
+  document.getElementById("priceText").textContent = formatBRLFromCents(cents);
+}
+
+async function carregarPrecoRemoto(){
+  try{
+    const r = await fetch(`${PRICE_API_URL}?action=getPrice`, { method:"GET" });
+    const j = await r.json();
+    if (j.ok && Number.isFinite(j.priceCents) && j.priceCents > 0) {
+      priceCacheCents = Math.floor(j.priceCents);
+      atualizarPrecoNaTela();
+      return;
+    }
+  } catch(_) {}
+  priceCacheCents = DEFAULT_PRICE_CENTS;
+  atualizarPrecoNaTela();
 }
 
 function parsePrecoParaCentavos(txt){
@@ -352,11 +353,7 @@ function parsePrecoParaCentavos(txt){
   if (!s) return null;
 
   let t = s.replace(/\s/g, "").replace(/^R\$/i, "");
-
-  if (t.includes(",")) {
-    t = t.replace(/\./g, "").replace(",", ".");
-  }
-
+  if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".");
   t = t.replace(/[^0-9.]/g, "");
 
   const num = Number(t);
@@ -364,7 +361,26 @@ function parsePrecoParaCentavos(txt){
   return Math.round(num * 100);
 }
 
-function salvarPreco(){
+async function setPrecoCentavosRemoto(cents){
+  const payload = {
+    action: "setPrice",
+    adminUser: ADMIN_USER,
+    adminPass: ADMIN_PASS,
+    priceCents: Math.floor(cents)
+  };
+
+  const resp = await fetch(PRICE_API_URL, {
+    method: "POST",
+    headers: { "Content-Type":"application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const j = await resp.json();
+  if (!j.ok) throw new Error(j.error || "Falha ao salvar");
+  priceCacheCents = Math.floor(cents);
+}
+
+async function salvarPreco(){
   const input = document.getElementById("priceInput");
   const out = document.getElementById("priceMsg");
 
@@ -375,21 +391,24 @@ function salvarPreco(){
     return;
   }
 
-  setPrecoCentavos(cents);
-  atualizarPrecoNaTela();
+  out.textContent = "⏳ Salvando globalmente...";
+  out.style.color = "#ffcc00";
 
-  out.textContent = `✅ Valor atualizado para ${formatBRLFromCents(cents)}.`;
-  out.style.color = "#00ff88";
+  try{
+    await setPrecoCentavosRemoto(cents);
+    atualizarPrecoNaTela();
+    out.textContent = `✅ Valor global atualizado para ${formatBRLFromCents(cents)}.`;
+    out.style.color = "#00ff88";
+  } catch(e){
+    out.textContent = `❌ Erro ao salvar: ${e.message}`;
+    out.style.color = "#ffcc00";
+  }
 }
-
-/* Inicializa preço (para todos) */
-atualizarPrecoNaTela();
 
 /* ===== LOGIN DROPDOWN ===== */
 function toggleLogin(){
   document.getElementById("loginBox").classList.toggle("hidden");
 }
-
 document.addEventListener("click", (e) => {
   const box = document.getElementById("loginBox");
   const icon = document.getElementById("loginIcon");
@@ -400,8 +419,8 @@ document.addEventListener("click", (e) => {
 });
 
 /* ===== ANTI-SPAM (POR NAVEGADOR) ===== */
-const SPAM_WINDOW_MS = 30 * 1000; // 30s
-const SPAM_MAX = 2;               // até 2 pedidos por janela
+const SPAM_WINDOW_MS = 30 * 1000;
+const SPAM_MAX = 2;
 const SPAM_KEY = "fenix_spam_log";
 let spamTimer = null;
 
@@ -409,31 +428,22 @@ function getSpamLog(){
   try { return JSON.parse(localStorage.getItem(SPAM_KEY) || "[]"); }
   catch { return []; }
 }
-
-function setSpamLog(arr){
-  localStorage.setItem(SPAM_KEY, JSON.stringify(arr));
-}
-
+function setSpamLog(arr){ localStorage.setItem(SPAM_KEY, JSON.stringify(arr)); }
 function checkRate(){
   const now = Date.now();
   let log = getSpamLog().filter(t => (now - t) <= SPAM_WINDOW_MS);
-
   if (log.length >= SPAM_MAX) {
     const waitMs = SPAM_WINDOW_MS - (now - log[0]);
     return { ok:false, waitMs: Math.max(0, waitMs), log };
   }
-
   log.push(now);
   setSpamLog(log);
   return { ok:true, waitMs:0, log };
 }
-
 function startCooldown(ms){
   const btn = document.getElementById("btnEnviar");
   let end = Date.now() + ms;
-
   btn.disabled = true;
-
   if (spamTimer) clearInterval(spamTimer);
   spamTimer = setInterval(() => {
     const left = end - Date.now();
@@ -464,7 +474,6 @@ async function enviar(){
     return;
   }
 
-  // Anti-spam
   const rate = checkRate();
   if (!rate.ok) {
     msg.innerText = `⏳ Anti-spam: aguarde ${Math.ceil(rate.waitMs/1000)}s para enviar outro pedido.`;
@@ -476,11 +485,9 @@ async function enviar(){
   const dataStr = new Date().toLocaleString();
   const precoAtual = document.getElementById("priceText").textContent;
 
-  // Salva localmente
   pedidos.push({id,d,n,q, hora:dataStr});
   localStorage.setItem(STORAGE, JSON.stringify(pedidos));
 
-  // Confirmação
   msg.innerHTML = `
     <div style="background:#162016;border:1px solid #00ff88;border-radius:8px;padding:10px;margin-top:10px;">
       <b style="color:#00ff88;">✔ Pedido registrado com sucesso!</b><br>
@@ -492,7 +499,6 @@ async function enviar(){
     </div>
   `;
 
-  // Envia para o Discord
   let discordOk = false;
   if (DISCORD_WEBHOOK && DISCORD_WEBHOOK.startsWith("https://discord.com/api/webhooks/")) {
     try {
@@ -511,9 +517,7 @@ async function enviar(){
         })
       });
       discordOk = resp.ok;
-    } catch (_) {
-      discordOk = false;
-    }
+    } catch (_) { discordOk = false; }
   }
 
   const extra = discordOk
@@ -545,8 +549,7 @@ function login(){
     document.getElementById("loginIcon").classList.add("admin-ok");
     document.getElementById("loginBox").classList.add("hidden");
 
-    // preenche o input com o valor atual
-    const cents = getPrecoCentavos();
+    const cents = (priceCacheCents ?? DEFAULT_PRICE_CENTS);
     document.getElementById("priceInput").value =
       (cents/100).toLocaleString("pt-BR", { minimumFractionDigits:2, maximumFractionDigits:2 });
 
@@ -588,6 +591,9 @@ function limpar(){
     render();
   }
 }
+
+/* ===== Inicializa preço GLOBAL ao abrir ===== */
+carregarPrecoRemoto();
 </script>
 
 </body>
