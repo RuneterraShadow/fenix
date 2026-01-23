@@ -228,7 +228,7 @@
 
         <h2>Soro de Recuperação Rápida PT-29</h2>
 
-        <!-- PREÇO GLOBAL (carrega do Apps Script) -->
+        <!-- PREÇO GLOBAL -->
         <div class="price" id="priceText">Carregando...</div>
 
         <p style="margin-top:12px;">
@@ -325,8 +325,7 @@ const DEFAULT_PRICE_CENTS = 10000 * 100;
 let priceCacheCents = null;
 
 function formatBRLFromCents(cents){
-  const valor = (cents / 100);
-  return valor.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
+  return (cents / 100).toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
 }
 
 function atualizarPrecoNaTela(){
@@ -336,7 +335,7 @@ function atualizarPrecoNaTela(){
 
 async function carregarPrecoRemoto(){
   try{
-    const r = await fetch(`${PRICE_API_URL}?action=getPrice`, { method:"GET" });
+    const r = await fetch(`${PRICE_API_URL}?action=getPrice&t=${Date.now()}`, { method:"GET", cache:"no-store" });
     const j = await r.json();
     if (j.ok && Number.isFinite(j.priceCents) && j.priceCents > 0) {
       priceCacheCents = Math.floor(j.priceCents);
@@ -361,6 +360,7 @@ function parsePrecoParaCentavos(txt){
   return Math.round(num * 100);
 }
 
+/* ✅ FIX CORS: POST sem Content-Type JSON (vira request simples) */
 async function setPrecoCentavosRemoto(cents){
   const payload = {
     action: "setPrice",
@@ -371,10 +371,11 @@ async function setPrecoCentavosRemoto(cents){
 
   const resp = await fetch(PRICE_API_URL, {
     method: "POST",
-    headers: { "Content-Type":"application/json" },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    cache: "no-store"
   });
 
+  // Apps Script responde JSON
   const j = await resp.json();
   if (!j.ok) throw new Error(j.error || "Falha ao salvar");
   priceCacheCents = Math.floor(cents);
@@ -444,6 +445,7 @@ function startCooldown(ms){
   const btn = document.getElementById("btnEnviar");
   let end = Date.now() + ms;
   btn.disabled = true;
+
   if (spamTimer) clearInterval(spamTimer);
   spamTimer = setInterval(() => {
     const left = end - Date.now();
