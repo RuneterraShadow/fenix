@@ -1,179 +1,313 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<title>Lágrimas de Fênix — Encomendas</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Encomendas — Lágrimas de Fênix</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#0f0f0f; color:#fff; }
+    header {
+      background:#1a1a1a;
+      padding:14px 20px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    header .title h1 { margin:0; color:#ff7a00; font-size:20px; }
+    header .title p { margin:4px 0 0; opacity:.85; font-size:13px; }
 
-<style>
-body { margin:0; font-family:Arial; background:#0f0f0f; color:#fff; }
-header {
-  background:#1a1a1a;
-  padding:14px 20px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-header h1 { margin:0; color:#ff7a00; font-size:20px; }
+    /* Login no canto superior direito */
+    .login { display:flex; align-items:center; gap:8px; }
+    .login input{
+      width:120px; padding:7px 8px; border:none; border-radius:6px;
+      background:#2b2b2b; color:#fff;
+    }
+    .login button{
+      width:auto; padding:7px 10px; border:none; border-radius:6px;
+      background:#ff7a00; color:#000; font-weight:bold; cursor:pointer;
+    }
+    .login button:hover{ background:#ff9a33; }
+    .badge { font-size:13px; opacity:.95; }
 
-.login input {
-  background:#2b2b2b; color:#fff;
-  border:none; border-radius:6px;
-  padding:6px; width:120px;
-}
-.login button {
-  background:#ff7a00; color:#000;
-  border:none; border-radius:6px;
-  padding:6px 10px; cursor:pointer;
-  font-weight:bold;
-}
+    .container { max-width:1000px; margin:auto; padding:20px; }
+    .grid { display:grid; grid-template-columns: 1.1fr .9fr; gap:20px; }
+    @media (max-width: 900px){ .grid { grid-template-columns:1fr; } }
 
-.container { max-width:900px; margin:auto; padding:20px; }
-.card { background:#1e1e1e; border-radius:10px; padding:20px; margin-bottom:20px; }
-input, button { width:100%; padding:12px; margin-top:10px; border:none; border-radius:6px; }
-input { background:#2b2b2b; color:#fff; }
-button { background:#ff7a00; color:#000; font-weight:bold; cursor:pointer; }
+    .card { background:#1e1e1e; border-radius:10px; padding:20px; margin-bottom:20px; }
+    .product img { width:100%; border-radius:10px; display:block; }
+    .price { color:#00ff88; font-size:24px; font-weight:bold; margin:10px 0 0; }
 
-.hidden { display:none; }
+    input, button { width:100%; padding:12px; margin-top:10px; border:none; border-radius:6px; }
+    input { background:#2b2b2b; color:#fff; }
+    button.primary { background:#ff7a00; color:#000; font-weight:bold; cursor:pointer; }
+    button.primary:hover { background:#ff9a33; }
 
-table { width:100%; border-collapse:collapse; margin-top:10px; }
-th, td { border:1px solid #333; padding:8px; }
-th { background:#2a2a2a; }
-</style>
+    .hidden { display:none; }
+
+    table { width:100%; border-collapse:collapse; margin-top:10px; }
+    th, td { border:1px solid #333; padding:8px; text-align:left; }
+    th { background:#2a2a2a; }
+    .btn-small { width:auto; padding:6px 10px; font-size:12px; border:none; border-radius:6px; cursor:pointer; background:#ff7a00; color:#000; font-weight:bold; }
+    .btn-small:hover { background:#ff9a33; }
+
+    .muted { opacity:.85; font-size:13px; }
+  </style>
 </head>
-
 <body>
 
 <header>
-  <h1>Lágrimas de Fênix</h1>
+  <div class="title">
+    <h1>Lágrimas de Fênix</h1>
+    <p>Soro de Recuperação Rápida PT-29</p>
+  </div>
+
   <div class="login">
-    <input id="adminUser" placeholder="Usuário">
-    <input id="adminPass" type="password" placeholder="Senha">
-    <button onclick="login()">Entrar</button>
-    <span id="status"></span>
+    <input id="adminUser" placeholder="Usuário" autocomplete="off">
+    <input id="adminPass" type="password" placeholder="Senha" autocomplete="off">
+    <button type="button" id="btnLogin" onclick="loginAdmin()">Entrar</button>
+    <button type="button" id="btnLogout" class="hidden" onclick="logoutAdmin()">Sair</button>
+    <span id="status" class="badge"></span>
   </div>
 </header>
 
 <div class="container">
+  <div class="grid">
 
-  <div class="card">
-    <h2>📦 Fazer Encomenda</h2>
-    <input id="discord" placeholder="@ do Discord">
-    <input id="nick" placeholder="Nick no jogo">
-    <input id="qtd" type="number" value="1" min="1">
-    <button onclick="enviar()">Enviar Encomenda</button>
-    <div id="msg"></div>
+    <!-- PRODUTO (imagem + descrição) -->
+    <div>
+      <div class="card product">
+        <!-- IMPORTANTE: o arquivo precisa estar no GitHub com ESTE nome EXATO -->
+        <img src="Venda%20fenix!.png" alt="Lágrimas de Fênix" onerror="this.style.display='none'">
+        <h2 style="margin:14px 0 0;">Soro de Recuperação Rápida PT-29</h2>
+        <div class="price">R$ 10.000</div>
+        <p style="margin:12px 0 0;">
+          Substância injetável experimental secreta de uso militar, conhecida como <b>“Lágrimas de Fênix”</b>.
+          Proporciona estabilização e recuperação rápidas e instantâneas de <b>QUALQUER lesão</b> e <b>toxina</b>
+          simultaneamente.
+        </p>
+      </div>
+
+      <!-- GERENCIADOR (aparece só no login admin) -->
+      <div class="card hidden" id="adminPanel">
+        <h2 style="margin:0 0 10px;">👑 Gerenciador de Encomendas</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Discord</th>
+              <th>Nick</th>
+              <th>Qtd</th>
+              <th>Hora</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="lista"></tbody>
+        </table>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+          <button type="button" class="btn-small" onclick="limparTudo()">🗑️ Limpar tudo</button>
+        </div>
+
+        <p class="muted" style="margin-top:10px;">
+          Obs.: este gerenciador salva no <b>mesmo navegador/dispositivo</b> (localStorage).
+          Para “salvar para sempre e em qualquer aparelho”, precisa planilha/bot/backend.
+        </p>
+      </div>
+    </div>
+
+    <!-- FORMULÁRIO -->
+    <div>
+      <div class="card">
+        <h2 style="margin:0 0 10px;">📦 Fazer Encomenda</h2>
+        <input id="discord" placeholder="@ do Discord">
+        <input id="nick" placeholder="Nick no jogo">
+        <input id="qtd" type="number" min="1" value="1" placeholder="Quantidade">
+        <button type="button" class="primary" onclick="enviarEncomenda()">Enviar Encomenda</button>
+        <div id="msg" style="margin-top:10px;"></div>
+        <p class="muted" style="margin-top:10px;">Pedidos são enviados somente para o Discord.</p>
+      </div>
+    </div>
+
   </div>
-
-  <div class="card hidden" id="admin">
-    <h2>👑 Gerenciador de Encomendas</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Discord</th>
-          <th>Nick</th>
-          <th>Qtd</th>
-          <th>Ação</th>
-        </tr>
-      </thead>
-      <tbody id="lista"></tbody>
-    </table>
-    <button onclick="limpar()">Limpar Tudo</button>
-  </div>
-
 </div>
 
 <script>
-/* CONFIG */
+/* ===== CONFIG ===== */
 const ADMIN_USER = "Runeterra Shadow";
 const ADMIN_PASS = "4465-22-1Rgm";
-const STORAGE = "fenix_pedidos";
+const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1464068318955569447/X7ijBubyKS39gXUO-WgkIe_NAw2LzhZ0ifqbUvrjH7GisdE7X8FxazSWo0BQLIB9GZ1w";
 
-/* DADOS */
-let pedidos = JSON.parse(localStorage.getItem(STORAGE) || "[]");
+/* ===== PERSISTÊNCIA DO GERENCIADOR ===== */
+const STORAGE_KEY = "fenix_encomendas_v2";
+let adminLogado = false;
 
-/* GERAR ID */
-function gerarPedidoId() {
-  const a = Date.now().toString(36);
-  const r = Math.random().toString(36).substring(2,6);
-  return `FX-${a}-${r}`.toUpperCase();
+let encomendas = carregarLocal();
+
+function carregarLocal() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+function salvarLocal() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(encomendas));
 }
 
-/* ENVIAR */
-function enviar() {
-  const d = discord.value.trim();
-  const n = nick.value.trim();
-  const q = parseInt(qtd.value);
+/* ===== ID ÚNICO DO PEDIDO ===== */
+function gerarPedidoId() {
+  const agora = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2, 6);
+  return `FX-${agora}-${rand}`.toUpperCase();
+}
 
-  if (!d || !n || q < 1) {
-    msg.innerHTML = "❌ Preencha todos os campos corretamente.";
+/* ===== LOGIN ADMIN ===== */
+function loginAdmin() {
+  const u = document.getElementById("adminUser").value.trim();
+  const p = document.getElementById("adminPass").value.trim();
+
+  if (u === ADMIN_USER && p === ADMIN_PASS) {
+    adminLogado = true;
+    document.getElementById("status").textContent = "👑";
+    document.getElementById("adminPanel").classList.remove("hidden");
+
+    document.getElementById("btnLogin").classList.add("hidden");
+    document.getElementById("btnLogout").classList.remove("hidden");
+    document.getElementById("adminUser").classList.add("hidden");
+    document.getElementById("adminPass").classList.add("hidden");
+
+    // Recarrega do storage e renderiza
+    encomendas = carregarLocal();
+    renderAdmin();
+  } else {
+    document.getElementById("status").textContent = "❌";
+  }
+}
+
+function logoutAdmin() {
+  adminLogado = false;
+  document.getElementById("status").textContent = "";
+  document.getElementById("adminPanel").classList.add("hidden");
+
+  document.getElementById("btnLogin").classList.remove("hidden");
+  document.getElementById("btnLogout").classList.add("hidden");
+  document.getElementById("adminUser").classList.remove("hidden");
+  document.getElementById("adminPass").classList.remove("hidden");
+  document.getElementById("adminPass").value = "";
+}
+
+/* ===== ENCOMENDA ===== */
+function enviarEncomenda() {
+  const discord = document.getElementById("discord").value.trim();
+  const nick = document.getElementById("nick").value.trim();
+  const qtd = parseInt(document.getElementById("qtd").value, 10);
+  const msg = document.getElementById("msg");
+
+  if (!discord || !nick || !qtd || qtd < 1) {
+    msg.textContent = "❌ Preencha todos os campos corretamente.";
     return;
   }
 
-  const id = gerarPedidoId();
+  const pedidoId = gerarPedidoId();
+  const agora = new Date();
 
-  const pedido = { id, d, n, q };
-  pedidos.push(pedido);
-  localStorage.setItem(STORAGE, JSON.stringify(pedidos));
+  const pedido = {
+    id: pedidoId,
+    discord,
+    nick,
+    qtd,
+    hora: agora.toLocaleString()
+  };
 
+  // ✅ salva SEMPRE no gerenciador (mesmo sem admin logado)
+  encomendas.push(pedido);
+  salvarLocal();
+
+  // se admin estiver logado, atualiza tabela na hora
+  if (adminLogado) renderAdmin();
+
+  // Envio para o Discord
+  fetch(DISCORD_WEBHOOK, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      content:
+        `🧪 **NOVA ENCOMENDA — LÁGRIMAS DE FÊNIX**\n` +
+        `🆔 ID: ${pedidoId}\n` +
+        `👤 Discord: ${discord}\n` +
+        `🎮 Nick: ${nick}\n` +
+        `📦 Quantidade: ${qtd}\n` +
+        `⏰ Data: ${agora.toLocaleString()}`
+    })
+  }).catch(() => {});
+
+  // ✅ Confirmação visual clara
   msg.innerHTML = `
-    <div style="background:#162016;border:1px solid #00ff88;border-radius:8px;padding:12px;margin-top:10px;">
-      <strong style="color:#00ff88;">✔ Pedido registrado com sucesso!</strong>
-      <div style="margin-top:8px;font-size:14px;">
-        <div>🆔 <b>ID:</b> ${id}</div>
-        <div>👤 <b>Discord:</b> ${d}</div>
-        <div>🎮 <b>Nick:</b> ${n}</div>
-        <div>📦 <b>Quantidade:</b> ${q}</div>
+    <div style="background:#162016;border:1px solid #00ff88;border-radius:8px;padding:12px;">
+      <div><b style="color:#00ff88;">✔ Pedido registrado com sucesso!</b></div>
+      <div style="margin-top:8px; font-size:14px;">
+        <div>🆔 <b>ID:</b> ${escapeHtml(pedidoId)}</div>
+        <div>👤 <b>Discord:</b> ${escapeHtml(discord)}</div>
+        <div>🎮 <b>Nick:</b> ${escapeHtml(nick)}</div>
+        <div>📦 <b>Quantidade:</b> ${qtd}</div>
       </div>
     </div>
   `;
 
-  discord.value = nick.value = "";
-  qtd.value = 1;
-
-  if (!admin.classList.contains("hidden")) render();
+  document.getElementById("discord").value = "";
+  document.getElementById("nick").value = "";
+  document.getElementById("qtd").value = 1;
 }
 
-/* LOGIN */
-function login() {
-  if (adminUser.value === ADMIN_USER && adminPass.value === ADMIN_PASS) {
-    admin.classList.remove("hidden");
-    status.innerText = "👑";
-    render();
-  } else {
-    status.innerText = "❌";
+/* ===== ADMIN ===== */
+function renderAdmin() {
+  const tbody = document.getElementById("lista");
+  tbody.innerHTML = "";
+
+  if (encomendas.length === 0) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="6">Sem encomendas salvas neste navegador.</td>`;
+    tbody.appendChild(tr);
+    return;
   }
-}
 
-/* RENDER */
-function render() {
-  lista.innerHTML = "";
-  pedidos.forEach((p,i)=>{
-    lista.innerHTML += `
-      <tr>
-        <td>${p.id}</td>
-        <td>${p.d}</td>
-        <td>${p.n}</td>
-        <td>${p.q}</td>
-        <td><button onclick="entregue(${i})">Entregue</button></td>
-      </tr>`;
+  encomendas.forEach((e, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      `<td>${escapeHtml(e.id)}</td>` +
+      `<td>${escapeHtml(e.discord)}</td>` +
+      `<td>${escapeHtml(e.nick)}</td>` +
+      `<td>${e.qtd}</td>` +
+      `<td>${escapeHtml(e.hora)}</td>` +
+      `<td><button type="button" class="btn-small" onclick="marcarEntregue(${i})">Entregue</button></td>`;
+    tbody.appendChild(tr);
   });
 }
 
-/* ENTREGUE */
-function entregue(i){
-  pedidos.splice(i,1);
-  localStorage.setItem(STORAGE, JSON.stringify(pedidos));
-  render();
+function marcarEntregue(i) {
+  encomendas.splice(i, 1);
+  salvarLocal();
+  renderAdmin();
 }
 
-function limpar(){
-  if(confirm("Limpar tudo?")){
-    pedidos = [];
-    localStorage.setItem(STORAGE,"[]");
-    render();
-  }
+function limparTudo() {
+  if (!confirm("Remover TODAS as encomendas salvas neste navegador?")) return;
+  encomendas = [];
+  salvarLocal();
+  renderAdmin();
+}
+
+/* ===== util ===== */
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 </script>
 
