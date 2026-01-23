@@ -9,31 +9,48 @@
     body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#0f0f0f; color:#fff; }
     header { background:#1a1a1a; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; }
     header h1 { margin:0; color:#ff7a00; font-size:20px; }
-    .top-right { display:flex; align-items:center; gap:10px; }
-    .btn-discord { background:#5865F2; color:#fff; border:none; border-radius:6px; padding:8px 12px; cursor:pointer; font-weight:bold; }
-    .btn-discord:hover { opacity:.9; }
-    .badge { font-size:14px; }
+
+    .top-right { display:flex; align-items:center; gap:8px; }
+    .top-right input {
+      width:120px; padding:7px 8px; border:none; border-radius:6px;
+      background:#2b2b2b; color:#fff;
+    }
+    .top-right button {
+      width:auto; padding:7px 10px; border:none; border-radius:6px;
+      background:#ff7a00; color:#000; font-weight:bold; cursor:pointer;
+    }
+    .top-right button:hover { background:#ff9a33; }
+    .badge { font-size:13px; opacity:.95; }
+
     .container { max-width:900px; margin:auto; padding:20px; }
     .card { background:#1e1e1e; border-radius:10px; padding:20px; margin-bottom:20px; }
     img { max-width:100%; border-radius:10px; }
     .price { color:#00ff88; font-size:24px; font-weight:bold; }
+
     input, button { width:100%; padding:12px; margin-top:10px; border:none; border-radius:6px; }
-    input { background:#2b2b2b; color:#fff; }
-    button.primary { background:#ff7a00; color:#000; font-weight:bold; cursor:pointer; }
-    button.primary:hover { background:#ff9a33; }
+    .form input { background:#2b2b2b; color:#fff; }
+    .primary { background:#ff7a00; color:#000; font-weight:bold; cursor:pointer; }
+    .primary:hover { background:#ff9a33; }
+
     .hidden { display:none; }
     table { width:100%; border-collapse:collapse; margin-top:10px; }
     th, td { border:1px solid #333; padding:8px; text-align:left; }
     th { background:#2a2a2a; }
-    .btn-small { padding:6px 10px; font-size:12px; width:auto; }
+    .btn-small { width:auto; padding:6px 10px; font-size:12px; }
+    .muted { opacity:.85; font-size:13px; }
   </style>
 </head>
 <body>
 
 <header>
   <h1>Lágrimas de Fênix</h1>
+
+  <!-- Login simples no canto superior direito -->
   <div class="top-right">
-    <button id="btnLogin" class="btn-discord" type="button" onclick="loginDiscord()">Entrar com Discord</button>
+    <input id="adminUser" placeholder="Usuário" autocomplete="off">
+    <input id="adminPass" type="password" placeholder="Senha" autocomplete="off">
+    <button type="button" id="btnLogin" onclick="loginAdmin()">Entrar</button>
+    <button type="button" id="btnLogout" class="hidden" onclick="logoutAdmin()">Sair</button>
     <span id="loginStatus" class="badge"></span>
   </div>
 </header>
@@ -47,100 +64,83 @@
     <p>Substância experimental secreta de uso militar conhecida como <b>Lágrimas de Fênix</b>.</p>
   </div>
 
-  <div class="card">
+  <div class="card form">
     <h2>📦 Fazer Encomenda</h2>
     <input id="discord" placeholder="@ do Discord">
     <input id="nick" placeholder="Nick no jogo">
-    <input id="qtd" type="number" min="1" value="1">
-    <button class="primary" type="button" onclick="enviarEncomenda()">Enviar Encomenda</button>
+    <input id="qtd" type="number" min="1" value="1" placeholder="Quantidade">
+    <button type="button" class="primary" onclick="enviarEncomenda()">Enviar Encomenda</button>
     <p id="msg"></p>
+    <p class="muted">Pedidos são enviados somente para o Discord.</p>
   </div>
 
+  <!-- Painel aparece só quando logar como admin -->
   <div class="card hidden" id="adminPanel">
-    <h2>👑 Gerenciador de Encomendas (Admin)</h2>
+    <h2>👑 Gerenciador de Encomendas</h2>
     <table>
       <thead>
         <tr>
           <th>Discord</th>
           <th>Nick</th>
           <th>Qtd</th>
+          <th>Hora</th>
           <th>Ação</th>
         </tr>
       </thead>
       <tbody id="adminLista"></tbody>
     </table>
+
+    <button type="button" class="btn-small" onclick="limparLista()">🗑️ Limpar lista (sessão)</button>
+    <p class="muted">Obs.: essa lista é só da sessão aberta no navegador. O “registro oficial” fica no Discord.</p>
   </div>
 
 </div>
 
 <script>
-// ================= CONFIGURAÇÃO =================
-// 1) Cole o Client ID do seu app do Discord (só números).
-const DISCORD_CLIENT_ID = "1464077708723097702";
+/* ====== CONFIG ====== */
+const ADMIN_USER = "Runeterra Shadow";
+const ADMIN_PASS = "4465-22-1Rgm";
 
-// 2) Seu Discord ID (admin único) — já configurado:
-const ADMIN_DISCORD_ID = "1464077708723097702";
+/* Webhook do Discord (vai ficar visível no HTML).
+   Se quiser esconder de vez, volta com serviço intermediário. */
+const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1464068318955569447/X7ijBubyKS39gXUO-WgkIe_NAw2LzhZ0ifqbUvrjH7GisdE7X8FxazSWo0BQLIB9GZ1w";
 
-// 3) Webhook para receber as encomendas:
-const WEBHOOK = "https://discord.com/api/webhooks/1464068318955569447/X7ijBubyKS39gXUO-WgkIe_NAw2LzhZ0ifqbUvrjH7GisdE7X8FxazSWo0BQLIB9GZ1w";
-
-// 4) Redirect fixo (evita “formato inválido” por mismatch de URL):
-//    No Discord Developer Portal (OAuth2 → General), adicione exatamente este Redirect URI.
-const REDIRECT_URI = "https://runetterashadow.github.io/fenix/";
-
-// ================= ESTADO =================
+/* ====== ESTADO ====== */
 let adminLogado = false;
-let encomendas = [];
+let encomendas = []; // lista só da sessão
 
-// ================= LOGIN DISCORD =================
-function loginDiscord() {
-  // Evita o erro “formato inválido” quando o Client ID ainda não foi colocado
-  if (!DISCORD_CLIENT_ID || DISCORD_CLIENT_ID === "COLE_SEU_CLIENT_ID_AQUI" || !/^\d+$/.test(DISCORD_CLIENT_ID)) {
-    alert("Falta configurar o DISCORD_CLIENT_ID no index.html (Discord Developer Portal → Application → Client ID).");
-    return;
+/* ====== LOGIN ADMIN ====== */
+function loginAdmin() {
+  const u = document.getElementById("adminUser").value.trim();
+  const p = document.getElementById("adminPass").value.trim();
+  const st = document.getElementById("loginStatus");
+
+  if (u === ADMIN_USER && p === ADMIN_PASS) {
+    adminLogado = true;
+    st.textContent = "👑 Admin";
+    document.getElementById("adminPanel").classList.remove("hidden");
+    document.getElementById("btnLogin").classList.add("hidden");
+    document.getElementById("btnLogout").classList.remove("hidden");
+    document.getElementById("adminUser").classList.add("hidden");
+    document.getElementById("adminPass").classList.add("hidden");
+    atualizarAdmin();
+  } else {
+    st.textContent = "❌";
   }
-
-  const authURL =
-    `https://discord.com/oauth2/authorize` +
-    `?client_id=${DISCORD_CLIENT_ID}` +
-    `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-    `&response_type=token` +
-    `&scope=identify` +
-    `&prompt=consent`;
-
-  window.location.href = authURL;
 }
 
-// Processa retorno OAuth
-(function processOAuthReturn() {
-  if (!window.location.hash.includes("access_token")) return;
+function logoutAdmin() {
+  adminLogado = false;
+  document.getElementById("loginStatus").textContent = "";
+  document.getElementById("adminPanel").classList.add("hidden");
+  document.getElementById("btnLogin").classList.remove("hidden");
+  document.getElementById("btnLogout").classList.add("hidden");
+  document.getElementById("adminUser").classList.remove("hidden");
+  document.getElementById("adminPass").classList.remove("hidden");
+  document.getElementById("adminPass").value = "";
+}
 
-  const params = new URLSearchParams(window.location.hash.substring(1));
-  const token = params.get("access_token");
-
-  fetch("https://discord.com/api/users/@me", {
-    headers: { Authorization: `Bearer ${token}` }
-  })
-    .then(r => r.json())
-    .then(user => {
-      if (user && user.id === ADMIN_DISCORD_ID) {
-        adminLogado = true;
-        document.getElementById("loginStatus").innerText = "👑 Admin";
-        document.getElementById("adminPanel").classList.remove("hidden");
-        document.getElementById("btnLogin").style.display = "none";
-      } else {
-        document.getElementById("loginStatus").innerText = "❌ Sem permissão";
-      }
-
-      // limpa o hash da URL (remove token da barra)
-      history.replaceState(null, "", window.location.pathname);
-    })
-    .catch(() => {
-      document.getElementById("loginStatus").innerText = "Erro no login";
-    });
-})();
-
-// ================= ENCOMENDA =================
+/* ====== ENCOMENDA ====== */
 function enviarEncomenda() {
   const discord = document.getElementById("discord").value.trim();
   const nick = document.getElementById("nick").value.trim();
@@ -148,48 +148,87 @@ function enviarEncomenda() {
   const msg = document.getElementById("msg");
 
   if (!discord || !nick || !qtd || qtd < 1) {
-    msg.innerText = "Preencha todos os campos corretamente.";
+    msg.textContent = "Preencha todos os campos corretamente.";
     return;
   }
 
-  const pedido = { discord, nick, qtd };
+  msg.textContent = "⏳ Enviando encomenda...";
+
+  const agora = new Date();
+  const pedido = { discord, nick, qtd, hora: agora.toLocaleString() };
+
+  // Se estiver logado, também mostra no painel local
   if (adminLogado) {
     encomendas.push(pedido);
     atualizarAdmin();
   }
 
-  fetch(WEBHOOK, {
+  fetch(DISCORD_WEBHOOK, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       content:
-        `🧪 **NOVA ENCOMENDA — LÁGRIMAS DE FÊNIX**\n` +
+        `🧪 **NOVA ENCOMENDA — LÁGRIMAS DE FÊNIX**\n\n` +
         `👤 Discord: ${discord}\n` +
         `🎮 Nick: ${nick}\n` +
-        `📦 Quantidade: ${qtd}`
+        `📦 Quantidade: ${qtd}\n` +
+        `⏰ Data: ${agora.toLocaleString()}`
     })
-  }).catch(() => {});
-
-  msg.innerText = "✅ Encomenda enviada!";
-  document.getElementById("discord").value = "";
-  document.getElementById("nick").value = "";
-  document.getElementById("qtd").value = 1;
+  })
+  .then(() => {
+    msg.textContent = "✅ Encomenda enviada com sucesso!";
+    document.getElementById("discord").value = "";
+    document.getElementById("nick").value = "";
+    document.getElementById("qtd").value = 1;
+  })
+  .catch(() => {
+    msg.textContent = "❌ Erro ao enviar encomenda (verifique o webhook).";
+  });
 }
 
-// ================= ADMIN =================
+/* ====== ADMIN LISTA ====== */
 function atualizarAdmin() {
-  const lista = document.getElementById("adminLista");
-  lista.innerHTML = "";
+  const tbody = document.getElementById("adminLista");
+  tbody.innerHTML = "";
+
+  if (encomendas.length === 0) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="5">Sem encomendas nesta sessão.</td>`;
+    tbody.appendChild(tr);
+    return;
+  }
+
   encomendas.forEach((e, i) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${e.discord}</td><td>${e.nick}</td><td>${e.qtd}</td><td><button class="btn-small" type="button" onclick="marcarEntregue(${i})">Entregue</button></td>`;
-    lista.appendChild(tr);
+    tr.innerHTML =
+      `<td>${escapeHtml(e.discord)}</td>` +
+      `<td>${escapeHtml(e.nick)}</td>` +
+      `<td>${e.qtd}</td>` +
+      `<td>${escapeHtml(e.hora)}</td>` +
+      `<td><button type="button" class="btn-small" onclick="marcarEntregue(${i})">Entregue</button></td>`;
+    tbody.appendChild(tr);
   });
 }
 
 function marcarEntregue(i) {
   encomendas.splice(i, 1);
   atualizarAdmin();
+}
+
+function limparLista() {
+  if (!confirm("Limpar a lista desta sessão?")) return;
+  encomendas = [];
+  atualizarAdmin();
+}
+
+/* ====== util ====== */
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 </script>
 
