@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Lágrimas de Fênix</title>
+<title>Lágrimas de Fênix — Encomendas</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -19,7 +19,7 @@ header h1 { margin:0; color:#ff7a00; font-size:20px; }
 .login input {
   background:#2b2b2b; color:#fff;
   border:none; border-radius:6px;
-  padding:6px; width:110px;
+  padding:6px; width:120px;
 }
 .login button {
   background:#ff7a00; color:#000;
@@ -62,14 +62,20 @@ th { background:#2a2a2a; }
     <input id="nick" placeholder="Nick no jogo">
     <input id="qtd" type="number" value="1" min="1">
     <button onclick="enviar()">Enviar Encomenda</button>
-    <p id="msg"></p>
+    <div id="msg"></div>
   </div>
 
   <div class="card hidden" id="admin">
-    <h2>👑 Gerenciador</h2>
+    <h2>👑 Gerenciador de Encomendas</h2>
     <table>
       <thead>
-        <tr><th>Discord</th><th>Nick</th><th>Qtd</th><th>Ação</th></tr>
+        <tr>
+          <th>ID</th>
+          <th>Discord</th>
+          <th>Nick</th>
+          <th>Qtd</th>
+          <th>Ação</th>
+        </tr>
       </thead>
       <tbody id="lista"></tbody>
     </table>
@@ -84,26 +90,49 @@ const ADMIN_USER = "Runeterra Shadow";
 const ADMIN_PASS = "4465-22-1Rgm";
 const STORAGE = "fenix_pedidos";
 
-/* CARREGA SEMPRE */
+/* DADOS */
 let pedidos = JSON.parse(localStorage.getItem(STORAGE) || "[]");
 
-/* ENVIO */
+/* GERAR ID */
+function gerarPedidoId() {
+  const a = Date.now().toString(36);
+  const r = Math.random().toString(36).substring(2,6);
+  return `FX-${a}-${r}`.toUpperCase();
+}
+
+/* ENVIAR */
 function enviar() {
   const d = discord.value.trim();
   const n = nick.value.trim();
   const q = parseInt(qtd.value);
 
   if (!d || !n || q < 1) {
-    msg.innerText = "Preencha tudo corretamente";
+    msg.innerHTML = "❌ Preencha todos os campos corretamente.";
     return;
   }
 
-  pedidos.push({ d, n, q });
+  const id = gerarPedidoId();
+
+  const pedido = { id, d, n, q };
+  pedidos.push(pedido);
   localStorage.setItem(STORAGE, JSON.stringify(pedidos));
 
-  msg.innerText = "✅ Encomenda salva!";
+  msg.innerHTML = `
+    <div style="background:#162016;border:1px solid #00ff88;border-radius:8px;padding:12px;margin-top:10px;">
+      <strong style="color:#00ff88;">✔ Pedido registrado com sucesso!</strong>
+      <div style="margin-top:8px;font-size:14px;">
+        <div>🆔 <b>ID:</b> ${id}</div>
+        <div>👤 <b>Discord:</b> ${d}</div>
+        <div>🎮 <b>Nick:</b> ${n}</div>
+        <div>📦 <b>Quantidade:</b> ${q}</div>
+      </div>
+    </div>
+  `;
+
   discord.value = nick.value = "";
   qtd.value = 1;
+
+  if (!admin.classList.contains("hidden")) render();
 }
 
 /* LOGIN */
@@ -123,6 +152,7 @@ function render() {
   pedidos.forEach((p,i)=>{
     lista.innerHTML += `
       <tr>
+        <td>${p.id}</td>
         <td>${p.d}</td>
         <td>${p.n}</td>
         <td>${p.q}</td>
@@ -131,7 +161,7 @@ function render() {
   });
 }
 
-/* REMOVER */
+/* ENTREGUE */
 function entregue(i){
   pedidos.splice(i,1);
   localStorage.setItem(STORAGE, JSON.stringify(pedidos));
