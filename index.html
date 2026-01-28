@@ -329,7 +329,9 @@ function isDesktop(){
 }
 
 function formatBRLFromCents(cents){
-  return (cents / 100).toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
+  const v = (cents / 100);
+  const num = v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `$ ${num}`;
 }
 
 function atualizarPrecoNaTela(){
@@ -636,4 +638,5 @@ carregarPrecoRemoto();
 
 </body>
 </html>
+
 
