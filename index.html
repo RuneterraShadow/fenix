@@ -338,9 +338,10 @@ function isDesktop(){
 }
 
 function formatBRLFromCents(cents){
-  const v = (cents / 100);
-  const num = v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `$ ${num}`;
+  return (cents / 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
 }
 
 function atualizarPrecoNaTela(){
