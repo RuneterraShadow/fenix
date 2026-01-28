@@ -359,7 +359,7 @@ function parsePrecoParaCentavos(txt){
   const s = String(txt || "").trim();
   if (!s) return null;
 
-  let t = s.replace(/\s/g, "").replace(/^R\$/i, "");
+let t = s.replace(/\s/g, "").replace(/^R\$/i, "").replace(/^\$/i, "");
   if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".");
   t = t.replace(/[^0-9.]/g, "");
 
@@ -638,5 +638,6 @@ carregarPrecoRemoto();
 
 </body>
 </html>
+
 
 
